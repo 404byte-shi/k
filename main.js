@@ -138,10 +138,11 @@ const OUT = "74.5,37 77.8,35.5 79,34 78.8,32.5 80.2,30.8 81,30.2 80.1,28.8 82,27
 const mx = lon => (lon - 68) * 17.5, my = lat => (37.6 - lat) * 17.5;
 const mapT = tex(530, 540, (c, w, h) => {
   const path = () => { c.beginPath(); OUT.forEach(([lo, la], i) => c[i ? "lineTo" : "moveTo"](mx(lo), my(la))); c.closePath(); };
+  const P = new Path2D(); OUT.forEach(([lo, la], i) => P[i ? "lineTo" : "moveTo"](mx(lo), my(la))); P.closePath();
   path(); c.save(); c.clip();
   [["#ff9933", 0], ["#f4f1ff", .36], ["#138808", .66]].forEach(([col, s], i, a) => { c.fillStyle = col; c.fillRect(0, h*s, w, h*((a[i+1]?.[1] ?? 1) - s) + 1); });
   c.fillStyle = "rgba(20,0,40,.35)"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 700; i++) { const x = R()*w, y = R()*h; if (c.isPointInPath(x, y)) { c.fillStyle = `rgba(255,${200 + R()*55|0},${120 + R()*90|0},${.5 + R()*.5})`; c.beginPath(); c.arc(x, y, .8 + R()*1.8, 0, TAU); c.fill(); } }
+  for (let i = 0; i < 700; i++) { const x = R()*w, y = R()*h; if (c.isPointInPath(P, x, y)) { c.fillStyle = `rgba(255,${200 + R()*55|0},${120 + R()*90|0},${.5 + R()*.5})`; c.beginPath(); c.arc(x, y, .8 + R()*1.8, 0, TAU); c.fill(); } }
   c.strokeStyle = "#2a4bd7"; c.lineWidth = 2; c.beginPath(); c.arc(mx(79), my(21.5), 30, 0, TAU); c.stroke();
   for (let i = 0; i < 24; i++) { const a = i/24*TAU; c.moveTo(mx(79), my(21.5)); c.lineTo(mx(79) + Math.cos(a)*30, my(21.5) + Math.sin(a)*30); } c.stroke();
   c.restore(); path(); c.strokeStyle = "#ffb4da"; c.lineWidth = 3; c.shadowColor = "#ff78bb"; c.shadowBlur = 24; c.stroke();
@@ -275,6 +276,7 @@ function tap() {
 }
 
 /* ---------- main loop ---------- */
+apply(0);
 const clk = new THREE.Clock();
 (function loop() {
   requestAnimationFrame(loop); if (document.hidden) return;
@@ -306,4 +308,3 @@ const clk = new THREE.Clock();
 })();
 
 addEventListener("resize", () => { camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
-apply(0);
