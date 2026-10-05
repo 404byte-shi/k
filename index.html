@@ -1,25 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-
+  <meta charset="UTF-8" />
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  >
+  />
 
-  <meta name="theme-color" content="#02030b">
+  <title>For Her — 20 ❤️</title>
 
-  <title>For Her · 20 ❤️</title>
+  <link rel="stylesheet" href="./style.css" />
 
-  <link rel="stylesheet" href="./style.css">
-
+  <!-- Three.js -->
   <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+      }
     }
-  }
   </script>
 </head>
 
@@ -27,65 +25,55 @@
 
   <div id="app"></div>
 
-  <div class="interface">
+  <!-- UI -->
+  <div class="hud">
 
-    <header class="top-bar">
-
+    <header>
       <div class="brand">
         FOR HER · 20
       </div>
 
-      <div id="chapter" class="chapter">
+      <div id="chapter">
         01 · THE UNIVERSE
       </div>
-
     </header>
 
-
-    <button
-      id="backButton"
-      class="back-button"
-    >
+    <button id="back" class="glass back">
       ← Back
     </button>
 
-
     <section class="story">
 
-      <div id="eyebrow" class="eyebrow">
+      <div id="eyebrow">
         A LITTLE UNIVERSE
       </div>
 
       <h1 id="title">
-        Made for her.
+        Find HER.
       </h1>
 
       <p id="description">
-        Somewhere between billions of stars,
-        I found my favourite person.
+        A brighter little universe made for the girl
+        who turns distance into something beautiful.
       </p>
 
-      <button
-        id="actionButton"
-        class="action-button"
-      >
-        Find HER ✦
+      <button id="action" class="glass primary">
+        Begin the journey ✦
       </button>
 
     </section>
 
-
-    <div id="interactionHint" class="interaction-hint">
-      Drag · pinch · tap HER
+    <div id="hint" class="hint">
+      Drag · pinch · tap objects
     </div>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="emote" class="emote"></div>
 
   </div>
 
-
-  <script
-    type="module"
-    src="./main.js"
-  ></script>
+  <script type="module" src="./main.js"></script>
 
 </body>
 </html>
