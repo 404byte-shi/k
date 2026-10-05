@@ -7,6 +7,8 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   />
 
+  <meta name="theme-color" content="#05030d" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>" />
   <title>For Her — 20 ❤️</title>
 
   <link rel="stylesheet" href="./style.css" />
@@ -15,7 +17,8 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
       }
     }
   </script>
@@ -24,6 +27,7 @@
 <body>
 
   <div id="app"></div>
+  <div id="fade"></div>
 
   <!-- UI -->
   <div class="hud">
