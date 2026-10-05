@@ -77,7 +77,17 @@
 
   </div>
 
-  <script type="module" src="./main.js"></script>
+  <script>
+    function show(m) {
+      let d = document.getElementById("err");
+      if (!d) { d = document.createElement("pre"); d.id = "err"; d.style.cssText = "position:fixed;left:12px;right:12px;top:70px;z-index:99;padding:12px;background:#3a0010;color:#ffc2cf;font:12px monospace;white-space:pre-wrap;border-radius:8px"; document.body.appendChild(d); }
+      d.textContent += m + "
+";
+    }
+    addEventListener("error", e => show("Error: " + (e.message || "script failed")));
+    addEventListener("unhandledrejection", e => show("Error: " + e.reason));
+  </script>
+  <script type="module" src="./main.js" onerror="show('main.js could not load (check file name / three.js import)')"></script>
 
 </body>
 </html>
