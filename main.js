@@ -5,9 +5,9 @@ import {
 } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js";
 
 
-/* =====================================================
-   DEVICE / PERFORMANCE
-===================================================== */
+/* =========================================================
+   PERFORMANCE
+========================================================= */
 
 const isMobile =
   /Android|iPhone|iPad|iPod/i.test(
@@ -15,31 +15,25 @@ const isMobile =
   );
 
 
-const isLowPower =
-  isMobile ||
-  navigator.hardwareConcurrency <= 4;
+const cores =
+  navigator.hardwareConcurrency || 4;
 
 
-/*
-  Lower pixel ratio is one of the biggest
-  performance improvements for phones.
-*/
-
-const MAX_PIXEL_RATIO =
-  isLowPower ? 1 : 1.25;
+const lowPower =
+  isMobile || cores <= 4;
 
 
-/*
-  Fewer stars on mobile.
-*/
+const DPR =
+  lowPower ? 1 : 1.25;
+
 
 const STAR_COUNT =
-  isLowPower ? 650 : 1100;
+  lowPower ? 750 : 1400;
 
 
-/* =====================================================
+/* =========================================================
    DOM
-===================================================== */
+========================================================= */
 
 const app =
   document.getElementById("app");
@@ -68,9 +62,9 @@ const interactionHint =
   );
 
 
-/* =====================================================
+/* =========================================================
    SCENE
-===================================================== */
+========================================================= */
 
 const scene =
   new THREE.Scene();
@@ -82,54 +76,45 @@ scene.background =
   );
 
 
-/*
-  Fog adds depth but is very cheap.
-*/
-
 scene.fog =
   new THREE.FogExp2(
     0x02030b,
-    0.009
+    .006
   );
 
 
-/* =====================================================
+/* =========================================================
    CAMERA
-===================================================== */
+========================================================= */
 
 const camera =
   new THREE.PerspectiveCamera(
     55,
 
-    window.innerWidth /
-      window.innerHeight,
+    innerWidth / innerHeight,
 
-    0.1,
+    .1,
 
-    1500
+    1800
   );
 
 
 camera.position.set(
   0,
-  13,
-  45
+  14,
+  48
 );
 
 
-/* =====================================================
+/* =========================================================
    RENDERER
-===================================================== */
+========================================================= */
 
 const renderer =
   new THREE.WebGLRenderer({
 
-    /*
-      Antialiasing is disabled
-      on mobile to save GPU power.
-    */
-
-    antialias: !isLowPower,
+    antialias:
+      !lowPower,
 
     powerPreference:
       "high-performance",
@@ -141,15 +126,15 @@ const renderer =
 
 renderer.setPixelRatio(
   Math.min(
-    window.devicePixelRatio,
-    MAX_PIXEL_RATIO
+    devicePixelRatio,
+    DPR
   )
 );
 
 
 renderer.setSize(
-  window.innerWidth,
-  window.innerHeight
+  innerWidth,
+  innerHeight
 );
 
 
@@ -162,7 +147,7 @@ renderer.toneMapping =
 
 
 renderer.toneMappingExposure =
-  1.05;
+  1.12;
 
 
 app.appendChild(
@@ -170,9 +155,9 @@ app.appendChild(
 );
 
 
-/* =====================================================
+/* =========================================================
    CONTROLS
-===================================================== */
+========================================================= */
 
 const controls =
   new OrbitControls(
@@ -186,7 +171,7 @@ controls.enableDamping =
 
 
 controls.dampingFactor =
-  0.055;
+  .055;
 
 
 controls.enablePan =
@@ -194,40 +179,38 @@ controls.enablePan =
 
 
 controls.rotateSpeed =
-  isMobile ? 0.45 : 0.65;
+  lowPower ? .4 : .6;
 
 
 controls.zoomSpeed =
-  isMobile ? 0.7 : 1;
+  .7;
 
 
 controls.minDistance =
-  4;
+  3;
 
 
 controls.maxDistance =
-  90;
+  100;
 
 
-/* =====================================================
-   LIGHTING
-===================================================== */
+/* =========================================================
+   LIGHT
+========================================================= */
 
 scene.add(
-
   new THREE.AmbientLight(
-    0x777791,
-    1
+    0x72758f,
+    1.1
   )
-
 );
 
 
 const sunLight =
   new THREE.PointLight(
-    0xffc66d,
-    35,
-    140
+    0xffc36c,
+    40,
+    160
   );
 
 
@@ -243,38 +226,39 @@ scene.add(
 );
 
 
-/* =====================================================
-   MATERIAL
-===================================================== */
+/* =========================================================
+   MATERIAL HELPER
+========================================================= */
 
-function createMaterial(
+function material(
   color,
   emissive = 0,
-  emissiveIntensity = 0
+  intensity = 0
 ) {
 
   return new THREE.MeshStandardMaterial({
 
     color,
 
-    roughness: 0.7,
+    roughness: .65,
 
-    metalness: 0,
+    metalness: .05,
 
     emissive,
 
-    emissiveIntensity
+    emissiveIntensity:
+      intensity
 
   });
 
 }
 
 
-/* =====================================================
+/* =========================================================
    SPHERE
-===================================================== */
+========================================================= */
 
-function createSphere(
+function sphere(
   radius,
   color,
   emissive = 0,
@@ -287,13 +271,13 @@ function createSphere(
 
       radius,
 
-      isLowPower ? 18 : 24,
+      lowPower ? 18 : 26,
 
-      isLowPower ? 12 : 16
+      lowPower ? 12 : 18
 
     ),
 
-    createMaterial(
+    material(
       color,
       emissive,
       intensity
@@ -304,13 +288,713 @@ function createSphere(
 }
 
 
-/* =====================================================
-   3D LABEL
-===================================================== */
+/* =========================================================
+   SPACE
+========================================================= */
 
-function createLabel(
+const space =
+  new THREE.Group();
+
+
+scene.add(
+  space
+);
+
+
+/* =========================================================
+   STARS
+========================================================= */
+
+const starGeometry =
+  new THREE.BufferGeometry();
+
+
+const starPositions =
+  new Float32Array(
+    STAR_COUNT * 3
+  );
+
+
+for (
+  let i = 0;
+  i < STAR_COUNT;
+  i++
+) {
+
+  const r =
+    100 +
+    Math.random() * 450;
+
+
+  const theta =
+    Math.random() *
+    Math.PI * 2;
+
+
+  const phi =
+    Math.acos(
+      2 * Math.random() - 1
+    );
+
+
+  starPositions[i * 3] =
+    r *
+    Math.sin(phi) *
+    Math.cos(theta);
+
+
+  starPositions[i * 3 + 1] =
+    r *
+    Math.cos(phi);
+
+
+  starPositions[i * 3 + 2] =
+    r *
+    Math.sin(phi) *
+    Math.sin(theta);
+
+}
+
+
+starGeometry.setAttribute(
+
+  "position",
+
+  new THREE.BufferAttribute(
+    starPositions,
+    3
+  )
+
+);
+
+
+const stars =
+  new THREE.Points(
+
+    starGeometry,
+
+    new THREE.PointsMaterial({
+
+      color: 0xffffff,
+
+      size:
+        lowPower ? .7 : .85,
+
+      transparent: true,
+
+      opacity: .85,
+
+      depthWrite: false
+
+    })
+
+  );
+
+
+space.add(
+  stars
+);
+
+
+/* =========================================================
+   COLORED DISTANT STARS
+========================================================= */
+
+const coloredStars =
+  new THREE.Group();
+
+
+for (
+  let i = 0;
+  i < (lowPower ? 30 : 55);
+  i++
+) {
+
+  const star =
+    sphere(
+      .06 +
+      Math.random() * .1,
+
+      Math.random() > .5
+        ? 0xff9fca
+        : 0x8eb8ff,
+
+      Math.random() > .5
+        ? 0xff5fa7
+        : 0x4c75ff,
+
+      2
+    );
+
+
+  star.position.set(
+
+    -90 +
+      Math.random() * 180,
+
+    -50 +
+      Math.random() * 100,
+
+    -80 +
+      Math.random() * 180
+
+  );
+
+
+  coloredStars.add(
+    star
+  );
+
+}
+
+
+space.add(
+  coloredStars
+);
+
+
+/* =========================================================
+   NEBULA
+========================================================= */
+
+function createNebula(
+  color,
+  position,
+  scale
+) {
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+
+  canvas.width = 256;
+
+  canvas.height = 256;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  const gradient =
+    ctx.createRadialGradient(
+      128,
+      128,
+      5,
+      128,
+      128,
+      128
+    );
+
+
+  gradient.addColorStop(
+    0,
+    color
+  );
+
+
+  gradient.addColorStop(
+    1,
+    "rgba(0,0,0,0)"
+  );
+
+
+  ctx.fillStyle =
+    gradient;
+
+
+  ctx.fillRect(
+    0,
+    0,
+    256,
+    256
+  );
+
+
+  const texture =
+    new THREE.CanvasTexture(
+      canvas
+    );
+
+
+  const sprite =
+    new THREE.Sprite(
+
+      new THREE.SpriteMaterial({
+
+        map: texture,
+
+        transparent: true,
+
+        depthWrite: false,
+
+        blending:
+          THREE.AdditiveBlending
+
+      })
+
+    );
+
+
+  sprite.position.copy(
+    position
+  );
+
+
+  sprite.scale.set(
+    scale,
+    scale,
+    1
+  );
+
+
+  space.add(
+    sprite
+  );
+
+}
+
+
+createNebula(
+  "rgba(100,40,140,.16)",
+  new THREE.Vector3(
+    -45,
+    15,
+    -40
+  ),
+  80
+);
+
+
+createNebula(
+  "rgba(20,80,180,.13)",
+  new THREE.Vector3(
+    50,
+    -10,
+    -60
+  ),
+  100
+);
+
+
+createNebula(
+  "rgba(255,50,130,.08)",
+  new THREE.Vector3(
+    0,
+    40,
+    -100
+  ),
+  90
+);
+
+
+/* =========================================================
+   SHOOTING STARS
+========================================================= */
+
+const shootingStars = [];
+
+
+for (
+  let i = 0;
+  i < (lowPower ? 4 : 8);
+  i++
+) {
+
+  const line =
+    new THREE.Line(
+
+      new THREE.BufferGeometry()
+        .setFromPoints([
+
+          new THREE.Vector3(
+            0,
+            0,
+            0
+          ),
+
+          new THREE.Vector3(
+            -2,
+            .4,
+            0
+          )
+
+        ]),
+
+      new THREE.LineBasicMaterial({
+
+        color: 0xffffff,
+
+        transparent: true,
+
+        opacity: .6
+
+      })
+
+    );
+
+
+  line.position.set(
+
+    -35 +
+      Math.random() * 70,
+
+    -10 +
+      Math.random() * 40,
+
+    -30 -
+      Math.random() * 50
+
+  );
+
+
+  line.userData.speed =
+    .08 +
+    Math.random() * .08;
+
+
+  line.userData.reset =
+    line.position.x;
+
+
+  space.add(
+    line
+  );
+
+
+  shootingStars.push(
+    line
+  );
+
+}
+
+
+/* =========================================================
+   ASTRONAUT
+========================================================= */
+
+function createAstronaut() {
+
+  const astronaut =
+    new THREE.Group();
+
+
+  /* helmet */
+
+  const helmet =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        .48,
+        lowPower ? 12 : 16,
+        lowPower ? 8 : 12
+      ),
+
+      material(
+        0xe9edf4,
+        0x111827,
+        .15
+      )
+
+    );
+
+
+  helmet.position.y =
+    .85;
+
+
+  astronaut.add(
+    helmet
+  );
+
+
+  /* visor */
+
+  const visor =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        .3,
+        12,
+        8
+      ),
+
+      material(
+        0x152238,
+        0x07152c,
+        .5
+      )
+
+    );
+
+
+  visor.position.set(
+    0,
+    .87,
+    .37
+  );
+
+
+  visor.scale.z =
+    .35;
+
+
+  astronaut.add(
+    visor
+  );
+
+
+  /* body */
+
+  const body =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        .65,
+        .8,
+        .42
+      ),
+
+      material(
+        0xe5e7eb
+      )
+
+    );
+
+
+  body.position.y =
+    .2;
+
+
+  astronaut.add(
+    body
+  );
+
+
+  /* arms */
+
+  [-1, 1].forEach(
+    side => {
+
+      const arm =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+            .18,
+            .65,
+            .18
+          ),
+
+          material(
+            0xd9dde4
+          )
+
+        );
+
+
+      arm.position.set(
+
+        side * .46,
+
+        .2,
+
+        0
+
+      );
+
+
+      arm.rotation.z =
+        side * .3;
+
+
+      astronaut.add(
+        arm
+      );
+
+    }
+  );
+
+
+  /* legs */
+
+  [-1, 1].forEach(
+    side => {
+
+      const leg =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+            .2,
+            .6,
+            .2
+          ),
+
+          material(
+            0xd8dce3
+          )
+
+        );
+
+
+      leg.position.set(
+
+        side * .18,
+
+        -.55,
+
+        0
+
+      );
+
+
+      astronaut.add(
+        leg
+      );
+
+    }
+  );
+
+
+  return astronaut;
+
+}
+
+
+const astronauts = [];
+
+
+for (
+  let i = 0;
+  i < (lowPower ? 2 : 4);
+  i++
+) {
+
+  const astronaut =
+    createAstronaut();
+
+
+  astronaut.position.set(
+
+    -20 +
+      Math.random() * 40,
+
+    -4 +
+      Math.random() * 18,
+
+    -18 -
+      Math.random() * 25
+
+  );
+
+
+  astronaut.scale.setScalar(
+    .7 +
+    Math.random() * .5
+  );
+
+
+  astronaut.userData.phase =
+    Math.random() * 10;
+
+
+  space.add(
+    astronaut
+  );
+
+
+  astronauts.push(
+    astronaut
+  );
+
+}
+
+
+/* =========================================================
+   SOLAR SYSTEM
+========================================================= */
+
+const solarSystem =
+  new THREE.Group();
+
+
+space.add(
+  solarSystem
+);
+
+
+/* =========================================================
+   SUN
+========================================================= */
+
+const sun =
+  sphere(
+    3.3,
+    0xffb341,
+    0xff6500,
+    2.5
+  );
+
+
+solarSystem.add(
+  sun
+);
+
+
+/* =========================================================
+   PLANETS
+========================================================= */
+
+const planets = [];
+
+
+const planetData = [
+
+  {
+    distance: 8,
+    size: .5,
+    color: 0xa8adb8,
+    speed: .18
+  },
+
+  {
+    distance: 11,
+    size: .72,
+    color: 0xc89a68,
+    speed: .14
+  },
+
+  {
+    distance: 15,
+    size: 1.35,
+    color: 0x3e72ff,
+    speed: .105,
+    her: true
+  },
+
+  {
+    distance: 20,
+    size: .75,
+    color: 0xc05242,
+    speed: .08
+  },
+
+  {
+    distance: 27,
+    size: 1.9,
+    color: 0xb99364,
+    speed: .045
+  }
+
+];
+
+
+function label(
   text,
-  color = "#ffffff"
+  color = "#fff"
 ) {
 
   const canvas =
@@ -330,14 +1014,6 @@ function createLabel(
     );
 
 
-  ctx.clearRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
   ctx.font =
     "700 52px Arial";
 
@@ -354,17 +1030,10 @@ function createLabel(
     "middle";
 
 
-  ctx.shadowColor =
-    "rgba(255,255,255,.35)";
-
-
-  ctx.shadowBlur = 10;
-
-
   ctx.fillText(
     text,
-    canvas.width / 2,
-    canvas.height / 2
+    256,
+    64
   );
 
 
@@ -395,8 +1064,8 @@ function createLabel(
 
 
   sprite.scale.set(
-    4.5,
-    1.125,
+    4,
+    1,
     1
   );
 
@@ -406,207 +1075,21 @@ function createLabel(
 }
 
 
-/* =====================================================
-   STAR FIELD
-===================================================== */
-
-const starGeometry =
-  new THREE.BufferGeometry();
-
-
-const starPositions =
-  new Float32Array(
-    STAR_COUNT * 3
-  );
-
-
-for (
-  let i = 0;
-  i < STAR_COUNT;
-  i++
-) {
-
-  const radius =
-    100 +
-    Math.random() * 350;
-
-
-  const theta =
-    Math.random() *
-    Math.PI *
-    2;
-
-
-  const phi =
-    Math.acos(
-      2 * Math.random() - 1
-    );
-
-
-  starPositions[
-    i * 3
-  ] =
-    radius *
-    Math.sin(phi) *
-    Math.cos(theta);
-
-
-  starPositions[
-    i * 3 + 1
-  ] =
-    radius *
-    Math.cos(phi);
-
-
-  starPositions[
-    i * 3 + 2
-  ] =
-    radius *
-    Math.sin(phi) *
-    Math.sin(theta);
-
-}
-
-
-starGeometry.setAttribute(
-
-  "position",
-
-  new THREE.BufferAttribute(
-    starPositions,
-    3
-  )
-
-);
-
-
-const starMaterial =
-  new THREE.PointsMaterial({
-
-    color: 0xffffff,
-
-    size:
-      isLowPower
-        ? 0.75
-        : 0.8,
-
-    transparent: true,
-
-    opacity: 0.75,
-
-    depthWrite: false
-
-  });
-
-
-const stars =
-  new THREE.Points(
-    starGeometry,
-    starMaterial
-  );
-
-
-scene.add(
-  stars
-);
-
-
-/* =====================================================
-   SOLAR SYSTEM
-===================================================== */
-
-const solarSystem =
-  new THREE.Group();
-
-
-scene.add(
-  solarSystem
-);
-
-
-/* =====================================================
-   SUN
-===================================================== */
-
-const sun =
-  createSphere(
-    3.2,
-    0xffa52e,
-    0xff6500,
-    2
-  );
-
-
-solarSystem.add(
-  sun
-);
-
-
-/* =====================================================
-   PLANETS
-===================================================== */
-
-const planets = [];
-
-
-const planetData = [
-
-  {
-    distance: 8,
-    size: 0.48,
-    color: 0xaeb3bd,
-    speed: 0.22
-  },
-
-  {
-    distance: 11,
-    size: 0.68,
-    color: 0xd1a87b,
-    speed: 0.17
-  },
-
-  {
-    distance: 15,
-    size: 1.25,
-    color: 0x3f75ff,
-    speed: 0.12,
-    her: true
-  },
-
-  {
-    distance: 20,
-    size: 0.72,
-    color: 0xb94c3c,
-    speed: 0.09
-  },
-
-  {
-    distance: 28,
-    size: 2,
-    color: 0xc39b69,
-    speed: 0.055
-  }
-
-];
-
-
 planetData.forEach(
-  (data) => {
+  data => {
 
-    /* -----------------------------
-       ORBIT
-    ----------------------------- */
+    /* orbit */
 
     const orbit =
       new THREE.Mesh(
 
         new THREE.RingGeometry(
 
-          data.distance - 0.012,
+          data.distance - .012,
 
-          data.distance + 0.012,
+          data.distance + .012,
 
-          isLowPower
+          lowPower
             ? 48
             : 72
 
@@ -614,11 +1097,11 @@ planetData.forEach(
 
         new THREE.MeshBasicMaterial({
 
-          color: 0x666675,
+          color: 0x626474,
 
           transparent: true,
 
-          opacity: 0.15,
+          opacity: .16,
 
           side:
             THREE.DoubleSide
@@ -637,23 +1120,21 @@ planetData.forEach(
     );
 
 
-    /* -----------------------------
-       PLANET
-    ----------------------------- */
+    /* planet */
 
     const planet =
-      createSphere(
+      sphere(
 
         data.size,
 
         data.color,
 
         data.her
-          ? 0x143a9d
+          ? 0x153caa
           : 0,
 
         data.her
-          ? 0.65
+          ? .65
           : 0
 
       );
@@ -669,8 +1150,7 @@ planetData.forEach(
 
     planet.userData.angle =
       Math.random() *
-      Math.PI *
-      2;
+      Math.PI * 2;
 
 
     planet.userData.her =
@@ -687,27 +1167,25 @@ planetData.forEach(
     );
 
 
-    /* -----------------------------
-       HER
-    ----------------------------- */
+    /* HER */
 
     if (
       data.her
     ) {
 
       const herLabel =
-        createLabel(
+        label(
           "HER"
         );
 
 
       herLabel.position.y =
-        1.9;
+        2;
 
 
       herLabel.scale.set(
         2.5,
-        0.625,
+        .625,
         1
       );
 
@@ -717,33 +1195,19 @@ planetData.forEach(
       );
 
 
-      /* ---------------------------
-         ME
-      --------------------------- */
+      /* ME */
 
       const me =
-        createSphere(
-
-          0.38,
-
-          0xff69ae,
-
-          0xff267d,
-
+        sphere(
+          .38,
+          0xff72b5,
+          0xff277e,
           2
-
         );
 
 
       me.userData.me =
         true;
-
-
-      me.position.set(
-        2.4,
-        0,
-        0
-      );
 
 
       planet.add(
@@ -752,19 +1216,19 @@ planetData.forEach(
 
 
       const meLabel =
-        createLabel(
+        label(
           "ME",
-          "#ffb6d7"
+          "#ffb5d6"
         );
 
 
       meLabel.position.y =
-        0.7;
+        .7;
 
 
       meLabel.scale.set(
         1.8,
-        0.45,
+        .45,
         1
       );
 
@@ -779,9 +1243,9 @@ planetData.forEach(
 );
 
 
-/* =====================================================
+/* =========================================================
    INDIA
-===================================================== */
+========================================================= */
 
 const india =
   new THREE.Group();
@@ -796,59 +1260,46 @@ scene.add(
 );
 
 
-/*
-  Stylized India geometry.
-
-  This is intentionally lightweight.
-*/
+/* stylized large India */
 
 const indiaShape =
   new THREE.Shape();
 
 
 indiaShape.moveTo(
-  -5,
-  4
+  -7, 6
 );
 
 indiaShape.lineTo(
-  -2,
-  5
+  -3, 7
 );
 
 indiaShape.lineTo(
-  1,
-  4.3
+  2, 6
 );
 
 indiaShape.lineTo(
-  4,
-  1
+  6, 2
 );
 
 indiaShape.lineTo(
-  2,
-  -2
+  4, -2
 );
 
 indiaShape.lineTo(
-  1,
-  -6
+  2, -7
 );
 
 indiaShape.lineTo(
-  -1,
-  -4
+  -1, -5
 );
 
 indiaShape.lineTo(
-  -3,
-  -2
+  -4, -2
 );
 
 indiaShape.lineTo(
-  -4,
-  1
+  -6, 2
 );
 
 indiaShape.closePath();
@@ -861,16 +1312,16 @@ const indiaGeometry =
 
     {
 
-      depth: 0.55,
+      depth: .65,
 
       bevelEnabled: true,
 
-      bevelSize: 0.12,
+      bevelSize: .14,
 
-      bevelThickness: 0.1,
+      bevelThickness: .1,
 
       bevelSegments:
-        isLowPower ? 1 : 2
+        lowPower ? 1 : 2
 
     }
 
@@ -882,8 +1333,10 @@ const indiaMesh =
 
     indiaGeometry,
 
-    createMaterial(
-      0x56704e
+    material(
+      0x426746,
+      0x122a15,
+      .2
     )
 
   );
@@ -898,28 +1351,67 @@ india.add(
 );
 
 
-/* =====================================================
-   PATNA MARKER
-===================================================== */
+/* =========================================================
+   INDIA LIGHTS
+========================================================= */
+
+for (
+  let i = 0;
+  i < (lowPower ? 40 : 75);
+  i++
+) {
+
+  const light =
+    sphere(
+      .045,
+      0xffd27a,
+      0xffa600,
+      2
+    );
+
+
+  light.position.set(
+
+    -6 +
+      Math.random() * 12,
+
+    .7,
+
+    -5 +
+      Math.random() * 10
+
+  );
+
+
+  india.add(
+    light
+  );
+
+}
+
+
+/* =========================================================
+   PATNA
+========================================================= */
 
 const patna =
-  createSphere(
-    0.38,
+  sphere(
+    .4,
     0xff6eaf,
-    0xff2d86,
-    2.5
+    0xff2383,
+    3
   );
+
+
+patna.position.set(
+  .7,
+  1,
+  1.4
+);
 
 
 patna.userData.patna =
   true;
-
-
-patna.position.set(
-  0.5,
-  0.8,
-  1.3
-);
 
 
 india.add(
@@ -928,8 +1420,9 @@ india.add(
 
 
 const patnaLabel =
-  createLabel(
-    "PATNA"
+  label(
+    "PATNA",
+    "#ffd2e6"
   );
 
 
@@ -938,8 +1431,8 @@ patnaLabel.position.y =
 
 
 patnaLabel.scale.set(
-  2.8,
-  0.7,
+  3,
+  .75,
   1
 );
 
@@ -949,9 +1442,9 @@ patna.add(
 );
 
 
-/* =====================================================
+/* =========================================================
    PATNA CITY
-===================================================== */
+========================================================= */
 
 const city =
   new THREE.Group();
@@ -966,49 +1459,55 @@ scene.add(
 );
 
 
-/* =====================================================
+/* =========================================================
    CITY GROUND
-===================================================== */
+========================================================= */
 
-const ground =
+const cityGround =
   new THREE.Mesh(
 
     new THREE.PlaneGeometry(
-      42,
-      30
+      80,
+      65
     ),
 
-    createMaterial(
-      0x17231d
+    material(
+      0x17231c
     )
 
   );
 
 
-ground.rotation.x =
+cityGround.rotation.x =
   -Math.PI / 2;
 
 
 city.add(
-  ground
+  cityGround
 );
 
 
-/* =====================================================
+/* =========================================================
    GANGA
-===================================================== */
+========================================================= */
 
 const ganga =
   new THREE.Mesh(
 
     new THREE.PlaneGeometry(
-      42,
-      6
+      80,
+      13
     ),
 
-    createMaterial(
-      0x24506b
-    )
+    new THREE.MeshStandardMaterial({
+
+      color: 0x234f6a,
+
+      roughness: .2,
+
+      metalness: .25
+
+    })
 
   );
 
@@ -1019,8 +1518,8 @@ ganga.rotation.x =
 
 ganga.position.set(
   0,
-  0.03,
-  7
+  .03,
+  18
 );
 
 
@@ -1029,12 +1528,80 @@ city.add(
 );
 
 
-/* =====================================================
+/* =========================================================
+   ROADS
+========================================================= */
+
+function road(
+  x,
+  z,
+  width,
+  depth
+) {
+
+  const mesh =
+    new THREE.Mesh(
+
+      new THREE.PlaneGeometry(
+        width,
+        depth
+      ),
+
+      material(
+        0x28272b
+      )
+
+    );
+
+
+  mesh.rotation.x =
+    -Math.PI / 2;
+
+
+  mesh.position.set(
+    x,
+    .06,
+    z
+  );
+
+
+  city.add(
+    mesh
+  );
+
+}
+
+
+road(
+  0,
+  4,
+  80,
+  3
+);
+
+
+road(
+  -16,
+  0,
+  3,
+  60
+);
+
+
+road(
+  17,
+  0,
+  3,
+  60
+);
+
+
+/* =========================================================
    BUILDINGS
-===================================================== */
+========================================================= */
 
 const buildingCount =
-  isLowPower ? 28 : 42;
+  lowPower ? 70 : 105;
 
 
 for (
@@ -1044,18 +1611,18 @@ for (
 ) {
 
   const width =
-    0.8 +
-    Math.random() * 1.4;
-
-
-  const height =
-    0.5 +
-    Math.random() * 2;
+    .7 +
+    Math.random() * 1.8;
 
 
   const depth =
-    0.8 +
-    Math.random() * 1.3;
+    .7 +
+    Math.random() * 1.8;
+
+
+  const height =
+    .8 +
+    Math.random() * 4.5;
 
 
   const building =
@@ -1067,8 +1634,12 @@ for (
         depth
       ),
 
-      createMaterial(
-        0x4d4b54
+      material(
+
+        Math.random() > .8
+          ? 0x655765
+          : 0x46464e
+
       )
 
     );
@@ -1076,13 +1647,13 @@ for (
 
   building.position.set(
 
-    -19 +
-      Math.random() * 38,
+    -35 +
+      Math.random() * 70,
 
     height / 2,
 
-    -8 +
-      Math.random() * 14
+    -27 +
+      Math.random() * 42
 
   );
 
@@ -1094,93 +1665,423 @@ for (
 }
 
 
-/* =====================================================
+/* =========================================================
+   STREET LIGHTS
+========================================================= */
+
+const streetLights =
+  new THREE.Group();
+
+
+for (
+  let i = 0;
+  i < 22;
+  i++
+) {
+
+  const pole =
+    new THREE.Mesh(
+
+      new THREE.CylinderGeometry(
+        .035,
+        .055,
+        2.2,
+        6
+      ),
+
+      material(
+        0x50505a
+      )
+
+    );
+
+
+  pole.position.set(
+
+    -35 +
+      i * 3.3,
+
+    1.1,
+
+    5.4
+
+  );
+
+
+  streetLights.add(
+    pole
+  );
+
+
+  const lamp =
+    sphere(
+      .1,
+      0xffd58a,
+      0xffa91c,
+      4
+    );
+
+
+  lamp.position.set(
+
+    pole.position.x,
+
+    2.25,
+
+    pole.position.z
+
+  );
+
+
+  streetLights.add(
+    lamp
+  );
+
+}
+
+
+city.add(
+  streetLights
+);
+
+
+/* =========================================================
+   POSTERS
+========================================================= */
+
+function createPoster(
+  text,
+  subtext
+) {
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+
+  canvas.width = 512;
+
+  canvas.height = 700;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  /* background */
+
+  const gradient =
+    ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      700
+    );
+
+
+  gradient.addColorStop(
+    0,
+    "#25132b"
+  );
+
+
+  gradient.addColorStop(
+    1,
+    "#130b20"
+  );
+
+
+  ctx.fillStyle =
+    gradient;
+
+
+  ctx.fillRect(
+    0,
+    0,
+    512,
+    700
+  );
+
+
+  /* stars */
+
+  for (
+    let i = 0;
+    i < 50;
+    i++
+  ) {
+
+    ctx.fillStyle =
+      "rgba(255,255,255,.7)";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+
+      Math.random() * 512,
+
+      Math.random() * 300,
+
+      Math.random() * 2,
+
+      0,
+
+      Math.PI * 2
+
+    );
+
+    ctx.fill();
+
+  }
+
+
+  /* heart */
+
+  ctx.fillStyle =
+    "#ff6fae";
+
+
+  ctx.font =
+    "100px Arial";
+
+
+  ctx.textAlign =
+    "center";
+
+
+  ctx.fillText(
+    "♥",
+    256,
+    180
+  );
+
+
+  /* main */
+
+  ctx.fillStyle =
+    "#ffffff";
+
+
+  ctx.font =
+    "bold 46px Arial";
+
+
+  ctx.fillText(
+    text,
+    256,
+    300
+  );
+
+
+  ctx.font =
+    "bold 25px Arial";
+
+
+  ctx.fillStyle =
+    "#ffb7d4";
+
+
+  ctx.fillText(
+    subtext,
+    256,
+    355
+  );
+
+
+  ctx.font =
+    "18px Arial";
+
+
+  ctx.fillStyle =
+    "#c5bdc9";
+
+
+  ctx.fillText(
+    "20 years of being wonderful ✦",
+    256,
+    440
+  );
+
+
+  const texture =
+    new THREE.CanvasTexture(
+      canvas
+    );
+
+
+  texture.colorSpace =
+    THREE.SRGBColorSpace;
+
+
+  const poster =
+    new THREE.Mesh(
+
+      new THREE.PlaneGeometry(
+        3,
+        4.1
+      ),
+
+      new THREE.MeshBasicMaterial({
+
+        map: texture,
+
+        side:
+          THREE.DoubleSide
+
+      })
+
+    );
+
+
+  return poster;
+
+}
+
+
+const poster1 =
+  createPoster(
+    "HAPPY",
+    "BIRTHDAY ❤️"
+  );
+
+
+poster1.position.set(
+  -8,
+  2.8,
+  3
+);
+
+
+poster1.rotation.y =
+  Math.PI / 2;
+
+
+city.add(
+  poster1
+);
+
+
+const poster2 =
+  createPoster(
+    "20 ✦",
+    "JUST FOR HER"
+  );
+
+
+poster2.position.set(
+  10,
+  2.8,
+  3
+);
+
+
+poster2.rotation.y =
+  -Math.PI / 2;
+
+
+city.add(
+  poster2
+);
+
+
+const poster3 =
+  createPoster(
+    "FOR HER",
+    "WITH LOVE"
+  );
+
+
+poster3.position.set(
+  -5,
+  2.8,
+  -10
+);
+
+
+city.add(
+  poster3
+);
+
+
+/* =========================================================
    GOLGHAR
-===================================================== */
+========================================================= */
 
 const golghar =
   new THREE.Group();
+
+
+golghar.position.set(
+  0,
+  0,
+  -5
+);
 
 
 golghar.userData.golghar =
   true;
 
 
-golghar.position.set(
-  0,
-  0.1,
-  -2
-);
+/* base */
 
-
-/* -----------------------------
-   BASE
------------------------------ */
-
-const golgharBase =
+const base =
   new THREE.Mesh(
 
     new THREE.CylinderGeometry(
-      2.3,
-      2.5,
-      1,
-      isLowPower ? 24 : 32
+      3.4,
+      3.8,
+      1.2,
+      lowPower ? 24 : 32
     ),
 
-    createMaterial(
-      0xc68c55
+    material(
+      0xc68d58
     )
 
   );
 
 
-golgharBase.position.y =
-  0.5;
+base.position.y =
+  .6;
 
 
 golghar.add(
-  golgharBase
+  base
 );
 
 
-/* -----------------------------
-   DOME
------------------------------ */
+/* dome */
 
 const dome =
   new THREE.Mesh(
 
     new THREE.SphereGeometry(
-
-      2.5,
-
-      isLowPower ? 20 : 28,
-
-      isLowPower ? 12 : 16,
-
+      3.7,
+      lowPower ? 22 : 30,
+      lowPower ? 14 : 18,
       0,
-
       Math.PI * 2,
-
       0,
-
       Math.PI / 2
-
     ),
 
-    createMaterial(
-      0xb97840
+    material(
+      0xb97842
     )
 
   );
 
 
 dome.scale.y =
-  1.2;
+  1.25;
 
 
 dome.position.y =
-  1;
+  1.1;
 
 
 golghar.add(
@@ -1188,43 +2089,42 @@ golghar.add(
 );
 
 
-/* -----------------------------
-   STAIRCASE
------------------------------ */
+/* stairs */
 
-const stairCount =
-  isLowPower ? 60 : 90;
+const stairs =
+  lowPower ? 65 : 100;
 
 
 for (
   let i = 0;
-  i < stairCount;
+  i < stairs;
   i++
 ) {
 
   const angle =
-    (i / stairCount) *
+    i /
+    stairs *
     Math.PI *
-    5.2;
+    5.4;
 
 
   const y =
-    0.35 +
-    (i / stairCount) *
-    4.5;
+    .4 +
+    i / stairs *
+    5;
 
 
   const stair =
     new THREE.Mesh(
 
       new THREE.BoxGeometry(
-        0.16,
-        0.045,
-        0.55
+        .2,
+        .045,
+        .7
       ),
 
-      createMaterial(
-        0x795238
+      material(
+        0x754f37
       )
 
     );
@@ -1233,12 +2133,12 @@ for (
   stair.position.set(
 
     Math.cos(angle) *
-      2.65,
+      3.9,
 
     y,
 
     Math.sin(angle) *
-      2.65
+      3.9
 
   );
 
@@ -1254,24 +2154,22 @@ for (
 }
 
 
-/* -----------------------------
-   LABEL
------------------------------ */
+/* label */
 
 const golgharLabel =
-  createLabel(
+  label(
     "GOLGHAR",
-    "#ffe1ae"
+    "#ffe2ad"
   );
 
 
 golgharLabel.position.y =
-  5;
+  6.5;
 
 
 golgharLabel.scale.set(
-  3.2,
-  0.8,
+  4,
+  1,
   1
 );
 
@@ -1286,11 +2184,67 @@ city.add(
 );
 
 
-/* =====================================================
-   STATE
-===================================================== */
+/* =========================================================
+   CITY DECORATION
+========================================================= */
 
-let currentScene =
+const heartLights =
+  new THREE.Group();
+
+
+for (
+  let i = 0;
+  i < 14;
+  i++
+) {
+
+  const light =
+    sphere(
+      .12,
+      0xff76b8,
+      0xff287f,
+      4
+    );
+
+
+  const angle =
+    i / 14 *
+    Math.PI * 2;
+
+
+  light.position.set(
+
+    Math.cos(angle) *
+      13,
+
+    2 +
+      Math.sin(
+        i * 2
+      ) * .7,
+
+    Math.sin(angle) *
+      13
+
+  );
+
+
+  heartLights.add(
+    light
+  );
+
+}
+
+
+city.add(
+  heartLights
+);
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let state =
   "space";
 
 
@@ -1298,82 +2252,70 @@ let travelling =
   false;
 
 
-/*
-  Used to make rendering cheaper when
-  the browser tab is hidden.
-*/
+/* =========================================================
+   UI
+========================================================= */
 
-let pageVisible =
-  true;
-
-
-document.addEventListener(
-  "visibilitychange",
-  () => {
-
-    pageVisible =
-      document.visibilityState ===
-      "visible";
-
-  }
-);
-
-
-/* =====================================================
-   UI UPDATE
-===================================================== */
-
-function updateUI({
-
-  chapterText,
-
-  eyebrowText,
-
-  titleText,
-
-  descriptionText,
-
-  buttonText,
-
-  hintText
-
-}) {
+function setUI(
+  data
+) {
 
   chapter.textContent =
-    chapterText;
+    data.chapter;
 
 
   eyebrow.textContent =
-    eyebrowText;
+    data.eyebrow;
 
 
   title.textContent =
-    titleText;
+    data.title;
 
 
   description.textContent =
-    descriptionText;
+    data.description;
 
 
   actionButton.textContent =
-    buttonText;
+    data.button;
 
 
   interactionHint.textContent =
-    hintText;
+    data.hint;
 
 }
 
 
-/* =====================================================
-   CAMERA TRAVEL
-===================================================== */
+/* =========================================================
+   CINEMATIC TRANSITION
+========================================================= */
 
-function cameraTravel(
-  destination,
+/*
+   Instead of:
+
+   camera A
+        ↓
+   camera B
+
+   we use:
+
+   A → HIGH ARC → B
+
+   This makes the journey feel like
+   actual travelling.
+*/
+
+function cinematicMove({
+
+  position,
+
   target,
+
+  duration = 1800,
+
   callback
-) {
+
+}) {
 
   travelling =
     true;
@@ -1383,7 +2325,7 @@ function cameraTravel(
     false;
 
 
-  const startPosition =
+  const start =
     camera.position.clone();
 
 
@@ -1391,47 +2333,92 @@ function cameraTravel(
     controls.target.clone();
 
 
+  const end =
+    position.clone();
+
+
+  const endTarget =
+    target.clone();
+
+
+  const mid =
+    start.clone()
+      .lerp(
+        end,
+        .5
+      );
+
+
+  mid.y +=
+    10;
+
+
+  mid.z +=
+    5;
+
+
   const startTime =
     performance.now();
 
 
-  const duration =
-    isLowPower
-      ? 1400
-      : 1700;
-
-
-  function animateTravel(
-    time
+  function frame(
+    now
   ) {
 
-    const progress =
+    let p =
+      (now - startTime) /
+      duration;
+
+
+    p =
       Math.min(
-
-        (time - startTime) /
-          duration,
-
+        p,
         1
-
       );
 
+
+    /* smootherstep */
 
     const eased =
-      1 -
-      Math.pow(
-        1 - progress,
-        4
+      p * p * p *
+      (
+        p *
+          (p * 6 - 15)
+        + 10
       );
+
+
+    /*
+      Quadratic curve:
+      start → mid → end
+    */
+
+    const a =
+      new THREE.Vector3();
+
+
+    const b =
+      new THREE.Vector3();
+
+
+    a.lerpVectors(
+      start,
+      mid,
+      eased
+    );
+
+
+    b.lerpVectors(
+      mid,
+      end,
+      eased
+    );
 
 
     camera.position.lerpVectors(
-
-      startPosition,
-
-      destination,
-
+      a,
+      b,
       eased
-
     );
 
 
@@ -1439,7 +2426,7 @@ function cameraTravel(
 
       startTarget,
 
-      target,
+      endTarget,
 
       eased
 
@@ -1450,11 +2437,11 @@ function cameraTravel(
 
 
     if (
-      progress < 1
+      p < 1
     ) {
 
       requestAnimationFrame(
-        animateTravel
+        frame
       );
 
     } else {
@@ -1462,13 +2449,17 @@ function cameraTravel(
       travelling =
         false;
 
+
       controls.enabled =
         true;
+
 
       if (
         callback
       ) {
+
         callback();
+
       }
 
     }
@@ -1477,230 +2468,373 @@ function cameraTravel(
 
 
   requestAnimationFrame(
-    animateTravel
+    frame
   );
 
 }
 
 
-/* =====================================================
-   INDIA
-===================================================== */
+/* =========================================================
+   SPACE → INDIA
+========================================================= */
 
-function enterIndia() {
+function goToIndia() {
 
-  currentScene =
-    "india";
-
-
-  solarSystem.visible =
-    false;
-
-
-  india.visible =
+  travelling =
     true;
 
 
-  city.visible =
-    false;
+  setUI({
 
+    chapter:
+      "01 → 02",
 
-  camera.position.set(
-    0,
-    10,
-    25
-  );
+    eyebrow:
+      "FOLLOW THE LIGHT",
 
+    title:
+      "Closer…",
 
-  controls.target.set(
-    0,
-    0,
-    0
-  );
+    description:
+      "Let's find her."
 
+    ,
 
-  controls.minDistance =
-    5;
+    button:
+      "Travelling…",
 
-
-  controls.maxDistance =
-    60;
-
-
-  updateUI({
-
-    chapterText:
-      "02 · INDIA",
-
-    eyebrowText:
-      "CHAPTER TWO · HER SIDE OF THE WORLD",
-
-    titleText:
-      "Find her in India.",
-
-    descriptionText:
-      "The universe is getting smaller. Somewhere in this glowing map is the city where her story continues.",
-
-    buttonText:
-      "Find Patna →",
-
-    hintText:
-      "Tap the glowing PATNA marker"
+    hint:
+      "✦"
 
   });
 
 
-  backButton.style.display =
-    "block";
-
-}
-
-
-/* =====================================================
-   PATNA
-===================================================== */
-
-function enterPatna() {
-
-  currentScene =
-    "patna";
-
-
-  india.visible =
-    false;
-
-
-  city.visible =
+  actionButton.disabled =
     true;
 
 
-  camera.position.set(
-    0,
-    14,
-    29
-  );
+  const her =
+    planets.find(
+      p =>
+        p.userData.her
+    );
 
 
-  controls.target.set(
-    0,
-    0,
-    0
-  );
+  const destination =
+    her.position
+      .clone()
+      .add(
+        new THREE.Vector3(
+          0,
+          3,
+          7
+        )
+      );
 
 
-  controls.minDistance =
-    6;
+  cinematicMove({
+
+    position:
+      destination,
+
+    target:
+      her.position,
+
+    duration:
+      lowPower ? 1700 : 2200,
+
+    callback() {
+
+      space.visible =
+        false;
 
 
-  controls.maxDistance =
-    65;
+      india.visible =
+        true;
 
 
-  updateUI({
+      camera.position.set(
+        0,
+        13,
+        32
+      );
 
-    chapterText:
-      "03 · PATNA",
 
-    eyebrowText:
-      "CHAPTER THREE · PATNA",
+      controls.target.set(
+        0,
+        0,
+        0
+      );
 
-    titleText:
-      "Welcome to Patna.",
 
-    descriptionText:
-      "Now we're closer. Explore the little city and find the place waiting for you.",
+      state =
+        "india";
 
-    buttonText:
-      "Find the destination →",
 
-    hintText:
-      "Tap Golghar"
+      actionButton.disabled =
+        false;
+
+
+      setUI({
+
+        chapter:
+          "02 · INDIA",
+
+        eyebrow:
+          "HER WORLD",
+
+        title:
+          "There she is.",
+
+        description:
+          "From all those stars, we finally found the right place.",
+
+        button:
+          "Find Patna →",
+
+        hint:
+          "Tap the glowing PATNA"
+
+      });
+
+      backButton.style.display =
+        "block";
+
+    }
 
   });
 
 }
 
 
-/* =====================================================
-   GOLGHAR
-===================================================== */
+/* =========================================================
+   INDIA → PATNA
+========================================================= */
 
-function enterGolghar() {
+function goToPatna() {
 
-  currentScene =
-    "golghar";
+  actionButton.disabled =
+    true;
 
 
-  updateUI({
+  setUI({
 
-    chapterText:
-      "04 · GOLGHAR",
+    chapter:
+      "02 → 03",
 
-    eyebrowText:
-      "CHAPTER FOUR · THE DESTINATION",
+    eyebrow:
+      "COMING CLOSER",
 
-    titleText:
-      "We found it.",
+    title:
+      "India…",
 
-    descriptionText:
-      "Golghar — recreated here as our first 3D destination. This is where our birthday journey begins its next chapter.",
+    description:
+      "Now let's find the city.",
 
-    buttonText:
-      "Continue →",
+    button:
+      "Travelling…",
 
-    hintText:
-      "The journey continues…"
+    hint:
+      "✦"
 
   });
 
 
-  cameraTravel(
+  cinematicMove({
 
-    new THREE.Vector3(
-      6,
-      5,
-      11
-    ),
+    position:
+      new THREE.Vector3(
+        0,
+        5,
+        17
+      ),
 
-    new THREE.Vector3(
-      0,
-      2,
-      0
-    )
+    target:
+      new THREE.Vector3(
+        .7,
+        0,
+        1.4
+      ),
 
-  );
+    duration:
+      lowPower ? 1600 : 2100,
+
+    callback() {
+
+      india.visible =
+        false;
+
+
+      city.visible =
+        true;
+
+
+      camera.position.set(
+        0,
+        20,
+        42
+      );
+
+
+      controls.target.set(
+        0,
+        0,
+        0
+      );
+
+
+      state =
+        "patna";
+
+
+      actionButton.disabled =
+        false;
+
+
+      setUI({
+
+        chapter:
+          "03 · PATNA",
+
+        eyebrow:
+          "THE CITY",
+
+        title:
+          "Welcome to Patna.",
+
+        description:
+          "A little city. A lot of memories waiting to be made.",
+
+        button:
+          "Explore the city →",
+
+        hint:
+          "Drag · pinch · explore"
+
+      });
+
+    }
+
+  });
 
 }
 
 
-/* =====================================================
-   NEXT CHAPTER
-===================================================== */
+/* =========================================================
+   PATNA → GOLGHAR
+========================================================= */
 
-function nextChapter() {
+function goToGolghar() {
 
-  if (
-    currentScene !==
-    "golghar"
-  ) {
-    return;
-  }
+  actionButton.disabled =
+    true;
 
+
+  setUI({
+
+    chapter:
+      "03 → 04",
+
+    eyebrow:
+      "ONE LAST STOP",
+
+    title:
+      "Almost there…",
+
+    description:
+      "Follow the lights.",
+
+    button:
+      "Travelling…",
+
+    hint:
+      "❤️"
+
+  });
+
+
+  cinematicMove({
+
+    position:
+      new THREE.Vector3(
+        10,
+        7,
+        13
+      ),
+
+    target:
+      golghar.position
+        .clone()
+        .add(
+          new THREE.Vector3(
+            0,
+            2,
+            0
+          )
+        ),
+
+    duration:
+      lowPower ? 1700 : 2200,
+
+    callback() {
+
+      state =
+        "golghar";
+
+
+      actionButton.disabled =
+        false;
+
+
+      setUI({
+
+        chapter:
+          "04 · GOLGHAR",
+
+        eyebrow:
+          "WE FOUND IT",
+
+        title:
+          "Happy 20th ❤️",
+
+        description:
+          "This is only the beginning of your little birthday journey.",
+
+        button:
+          "Continue ✦",
+
+        hint:
+          "Explore · look around · smile"
+
+      });
+
+    }
+
+  });
+
+}
+
+
+/* =========================================================
+   NEXT
+========================================================= */
+
+function continueJourney() {
 
   title.textContent =
-    "And now…";
+    "For the girl I found among the stars.";
 
 
   description.textContent =
-    "The real story begins here. ❤️";
+    "The next chapter is made of memories, places, photographs and all the little things that make you… you. ❤️";
 
 
   actionButton.textContent =
-    "Coming soon ✦";
+    "Next chapter →";
 
 
   interactionHint.textContent =
-    "Next: your memories";
+    "More is coming…";
 
 
   actionButton.disabled =
@@ -1709,9 +2843,9 @@ function nextChapter() {
 }
 
 
-/* =====================================================
-   MAIN BUTTON
-===================================================== */
+/* =========================================================
+   BUTTON
+========================================================= */
 
 actionButton.addEventListener(
   "click",
@@ -1725,47 +2859,38 @@ actionButton.addEventListener(
 
 
     if (
-      currentScene ===
+      state ===
       "space"
     ) {
 
-      enterIndia();
-
-      return;
+      goToIndia();
 
     }
 
-
-    if (
-      currentScene ===
+    else if (
+      state ===
       "india"
     ) {
 
-      enterPatna();
-
-      return;
+      goToPatna();
 
     }
 
-
-    if (
-      currentScene ===
+    else if (
+      state ===
       "patna"
     ) {
 
-      enterGolghar();
-
-      return;
+      goToGolghar();
 
     }
 
-
-    if (
-      currentScene ===
+    else if (
+      state ===
       "golghar"
     ) {
 
-      nextChapter();
+      continueJourney();
 
     }
 
@@ -1773,9 +2898,9 @@ actionButton.addEventListener(
 );
 
 
-/* =====================================================
+/* =========================================================
    RAYCASTING
-===================================================== */
+========================================================= */
 
 const raycaster =
   new THREE.Raycaster();
@@ -1786,10 +2911,8 @@ const pointer =
 
 
 renderer.domElement.addEventListener(
-
   "pointerup",
-
-  (event) => {
+  event => {
 
     if (
       travelling
@@ -1809,8 +2932,7 @@ renderer.domElement.addEventListener(
         rect.left
       ) /
       rect.width *
-      2 -
-      1;
+      2 - 1;
 
 
     pointer.y =
@@ -1821,8 +2943,7 @@ renderer.domElement.addEventListener(
         ) /
         rect.height
       ) *
-      2 +
-      1;
+      2 + 1;
 
 
     raycaster.setFromCamera(
@@ -1831,12 +2952,10 @@ renderer.domElement.addEventListener(
     );
 
 
-    /* -----------------------------
-       HER
-    ----------------------------- */
+    /* HER */
 
     if (
-      currentScene ===
+      state ===
       "space"
     ) {
 
@@ -1847,9 +2966,9 @@ renderer.domElement.addEventListener(
         );
 
 
-      const clickedHer =
+      const herHit =
         hits.some(
-          (hit) => {
+          hit => {
 
             let object =
               hit.object;
@@ -1860,8 +2979,7 @@ renderer.domElement.addEventListener(
             ) {
 
               if (
-                object.userData &&
-                object.userData.her
+                object.userData?.her
               ) {
 
                 return true;
@@ -1882,22 +3000,20 @@ renderer.domElement.addEventListener(
 
 
       if (
-        clickedHer
+        herHit
       ) {
 
-        enterIndia();
+        goToIndia();
 
       }
 
     }
 
 
-    /* -----------------------------
-       PATNA
-    ----------------------------- */
+    /* PATNA */
 
     else if (
-      currentScene ===
+      state ===
       "india"
     ) {
 
@@ -1912,19 +3028,17 @@ renderer.domElement.addEventListener(
         hits.length
       ) {
 
-        enterPatna();
+        goToPatna();
 
       }
 
     }
 
 
-    /* -----------------------------
-       GOLGHAR
-    ----------------------------- */
+    /* GOLGHAR */
 
     else if (
-      currentScene ===
+      state ===
       "patna"
     ) {
 
@@ -1939,30 +3053,33 @@ renderer.domElement.addEventListener(
         hits.length
       ) {
 
-        enterGolghar();
+        goToGolghar();
 
       }
 
     }
 
   }
-
 );
 
 
-/* =====================================================
-   BACK BUTTON
-===================================================== */
+/* =========================================================
+   BACK
+========================================================= */
 
 backButton.addEventListener(
   "click",
   () => {
 
-    currentScene =
+    travelling =
+      false;
+
+
+    state =
       "space";
 
 
-    solarSystem.visible =
+    space.visible =
       true;
 
 
@@ -1976,8 +3093,8 @@ backButton.addEventListener(
 
     camera.position.set(
       0,
-      13,
-      45
+      14,
+      48
     );
 
 
@@ -1988,32 +3105,28 @@ backButton.addEventListener(
     );
 
 
-    controls.minDistance =
-      4;
+    actionButton.disabled =
+      false;
 
 
-    controls.maxDistance =
-      90;
+    setUI({
 
-
-    updateUI({
-
-      chapterText:
+      chapter:
         "01 · THE UNIVERSE",
 
-      eyebrowText:
-        "CHAPTER ONE",
+      eyebrow:
+        "A LITTLE UNIVERSE",
 
-      titleText:
-        "Somewhere in the universe…",
+      title:
+        "Made for her.",
 
-      descriptionText:
-        "Two people can be far apart and still belong to the same little universe.",
+      description:
+        "Somewhere between billions of stars, I found my favourite person.",
 
-      buttonText:
-        "Begin the journey ✦",
+      button:
+        "Find HER ✦",
 
-      hintText:
+      hint:
         "Drag · pinch · tap HER"
 
     });
@@ -2022,40 +3135,36 @@ backButton.addEventListener(
     backButton.style.display =
       "none";
 
-
-    actionButton.disabled =
-      false;
-
   }
 );
 
 
-/* =====================================================
+/* =========================================================
    RESIZE
-===================================================== */
+========================================================= */
 
 window.addEventListener(
   "resize",
   () => {
 
     camera.aspect =
-      window.innerWidth /
-      window.innerHeight;
+      innerWidth /
+      innerHeight;
 
 
     camera.updateProjectionMatrix();
 
 
     renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
+      innerWidth,
+      innerHeight
     );
 
 
     renderer.setPixelRatio(
       Math.min(
-        window.devicePixelRatio,
-        MAX_PIXEL_RATIO
+        devicePixelRatio,
+        DPR
       )
     );
 
@@ -2063,32 +3172,42 @@ window.addEventListener(
 );
 
 
-/* =====================================================
+/* =========================================================
    ANIMATION
-===================================================== */
+========================================================= */
 
 const clock =
   new THREE.Clock();
 
 
-let lastRender =
+let lastFrame =
   0;
 
 
-/*
-  Mobile gets a 60fps target.
-  On weaker devices this naturally
-  becomes less aggressive.
-*/
-
 const frameInterval =
-  isLowPower
+  lowPower
     ? 1000 / 55
     : 1000 / 60;
 
 
+let visible =
+  true;
+
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+
+    visible =
+      document.visibilityState ===
+      "visible";
+
+  }
+);
+
+
 function animate(
-  currentTime
+  now
 ) {
 
   requestAnimationFrame(
@@ -2096,56 +3215,45 @@ function animate(
   );
 
 
-  /*
-    Don't waste GPU resources when
-    the page isn't visible.
-  */
-
   if (
-    !pageVisible
+    !visible
   ) {
     return;
   }
 
 
-  /*
-    Simple frame limiter.
-  */
-
   if (
-    currentTime -
-    lastRender <
+    now -
+    lastFrame <
     frameInterval
   ) {
-
     return;
-
   }
 
 
-  lastRender =
-    currentTime;
+  lastFrame =
+    now;
 
 
   const time =
     clock.getElapsedTime();
 
 
-  /* ===========================
-     SOLAR SYSTEM
-  =========================== */
+  /* =====================================================
+     SPACE ANIMATION
+  ===================================================== */
 
   if (
-    currentScene ===
+    state ===
     "space"
   ) {
 
     solarSystem.rotation.y =
-      time * 0.012;
+      time * .011;
 
 
     planets.forEach(
-      (planet) => {
+      planet => {
 
         const radius =
           planet.userData.distance;
@@ -2174,18 +3282,20 @@ function animate(
           ) *
           radius;
 
+
+        planet.rotation.y +=
+          .002;
+
       }
     );
 
 
-    /*
-      ME orbiting HER.
-    */
+    /* ME around HER */
 
     const her =
       planets.find(
-        (planet) =>
-          planet.userData.her
+        p =>
+          p.userData.her
       );
 
 
@@ -2195,9 +3305,8 @@ function animate(
 
       const me =
         her.children.find(
-          (child) =>
-            child.userData &&
-            child.userData.me
+          c =>
+            c.userData?.me
         );
 
 
@@ -2206,11 +3315,11 @@ function animate(
       ) {
 
         const angle =
-          time * 0.9;
+          time * .9;
 
 
         const radius =
-          2.4;
+          2.3;
 
 
         me.position.x =
@@ -2227,36 +3336,87 @@ function animate(
     }
 
 
-    /*
-      Very slow star movement.
-    */
+    /* astronauts */
+
+    astronauts.forEach(
+      (astronaut, i) => {
+
+        astronaut.position.y +=
+          Math.sin(
+            time * .7 +
+            astronaut.userData.phase
+          ) *
+          .003;
+
+
+        astronaut.rotation.y +=
+          .0015;
+
+      }
+    );
+
+
+    /* shooting stars */
+
+    shootingStars.forEach(
+      star => {
+
+        star.position.x +=
+          star.userData.speed;
+
+
+        if (
+          star.position.x >
+          50
+        ) {
+
+          star.position.x =
+            -50;
+
+        }
+
+      }
+    );
+
 
     stars.rotation.y =
-      time * 0.0004;
+      time * .00035;
 
   }
 
 
-  /* ===========================
-     PATNA
-  =========================== */
+  /* =====================================================
+     CITY
+  ===================================================== */
 
   if (
-    currentScene ===
-    "patna"
+    state ===
+    "patna" ||
+    state ===
+    "golghar"
   ) {
-
-    /*
-      Tiny movement makes the
-      city feel alive without
-      costing much.
-    */
 
     golghar.rotation.y =
       Math.sin(
-        time * 0.3
+        time * .25
       ) *
-      0.04;
+      .025;
+
+
+    heartLights.children
+      .forEach(
+        (light, i) => {
+
+          light.material.emissiveIntensity =
+            2.5 +
+            Math.sin(
+              time * 2 +
+              i
+            ) *
+            1.2;
+
+        }
+      );
 
   }
 
@@ -2271,10 +3431,6 @@ function animate(
 
 }
 
-
-/* =====================================================
-   START
-===================================================== */
 
 requestAnimationFrame(
   animate
