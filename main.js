@@ -9,26 +9,19 @@ import {
    PERFORMANCE
 ========================================================= */
 
-const isMobile =
+const mobile =
   /Android|iPhone|iPad|iPod/i.test(
     navigator.userAgent
   );
 
+const low =
+  mobile ||
+  (navigator.hardwareConcurrency || 4) <= 4;
 
-const cores =
-  navigator.hardwareConcurrency || 4;
-
-
-const lowPower =
-  isMobile || cores <= 4;
-
-
-const DPR =
-  lowPower ? 1 : 1.25;
-
+const DPR = low ? 1 : 1.35;
 
 const STAR_COUNT =
-  lowPower ? 750 : 1400;
+  low ? 1000 : 2200;
 
 
 /* =========================================================
@@ -36,30 +29,34 @@ const STAR_COUNT =
 ========================================================= */
 
 const app =
-  document.getElementById("app");
+  document.querySelector("#app");
 
 const chapter =
-  document.getElementById("chapter");
+  document.querySelector("#chapter");
 
 const eyebrow =
-  document.getElementById("eyebrow");
+  document.querySelector("#eyebrow");
 
 const title =
-  document.getElementById("title");
+  document.querySelector("#title");
 
 const description =
-  document.getElementById("description");
+  document.querySelector("#description");
 
-const actionButton =
-  document.getElementById("actionButton");
+const action =
+  document.querySelector("#action");
 
-const backButton =
-  document.getElementById("backButton");
+const back =
+  document.querySelector("#back");
 
-const interactionHint =
-  document.getElementById(
-    "interactionHint"
-  );
+const hint =
+  document.querySelector("#hint");
+
+const toast =
+  document.querySelector("#toast");
+
+const emote =
+  document.querySelector("#emote");
 
 
 /* =========================================================
@@ -69,17 +66,13 @@ const interactionHint =
 const scene =
   new THREE.Scene();
 
-
 scene.background =
-  new THREE.Color(
-    0x02030b
-  );
-
+  new THREE.Color(0x05030d);
 
 scene.fog =
   new THREE.FogExp2(
-    0x02030b,
-    .006
+    0x08051a,
+    0.0045
   );
 
 
@@ -90,19 +83,15 @@ scene.fog =
 const camera =
   new THREE.PerspectiveCamera(
     55,
-
     innerWidth / innerHeight,
-
-    .1,
-
-    1800
+    0.1,
+    2200
   );
-
 
 camera.position.set(
   0,
-  14,
-  48
+  13,
+  52
 );
 
 
@@ -112,17 +101,11 @@ camera.position.set(
 
 const renderer =
   new THREE.WebGLRenderer({
-
-    antialias:
-      !lowPower,
+    antialias: !low,
 
     powerPreference:
-      "high-performance",
-
-    alpha: false
-
+      "high-performance"
   });
-
 
 renderer.setPixelRatio(
   Math.min(
@@ -131,24 +114,19 @@ renderer.setPixelRatio(
   )
 );
 
-
 renderer.setSize(
   innerWidth,
   innerHeight
 );
 
-
 renderer.outputColorSpace =
   THREE.SRGBColorSpace;
-
 
 renderer.toneMapping =
   THREE.ACESFilmicToneMapping;
 
-
 renderer.toneMappingExposure =
-  1.12;
-
+  1.15;
 
 app.appendChild(
   renderer.domElement
@@ -165,73 +143,109 @@ const controls =
     renderer.domElement
   );
 
-
-controls.enableDamping =
-  true;
-
+controls.enableDamping = true;
 
 controls.dampingFactor =
-  .055;
+  0.055;
 
-
-controls.enablePan =
-  false;
-
+controls.enablePan = false;
 
 controls.rotateSpeed =
-  lowPower ? .4 : .6;
-
+  0.45;
 
 controls.zoomSpeed =
-  .7;
-
+  0.65;
 
 controls.minDistance =
-  3;
-
+  2.5;
 
 controls.maxDistance =
-  100;
+  120;
 
 
 /* =========================================================
-   LIGHT
+   LIGHTING
 ========================================================= */
 
 scene.add(
-  new THREE.AmbientLight(
-    0x72758f,
-    1.1
+  new THREE.HemisphereLight(
+    0xffb4d8,
+    0x161326,
+    1.7
   )
 );
 
-
-const sunLight =
-  new THREE.PointLight(
-    0xffc36c,
-    40,
-    160
+const moonLight =
+  new THREE.DirectionalLight(
+    0xffb3d9,
+    1.2
   );
 
+moonLight.position.set(
+  -20,
+  40,
+  20
+);
 
-sunLight.position.set(
+scene.add(
+  moonLight
+);
+
+const cityLight =
+  new THREE.PointLight(
+    0xff65b5,
+    30,
+    180
+  );
+
+cityLight.position.set(
   0,
-  0,
+  20,
   0
 );
 
-
 scene.add(
-  sunLight
+  cityLight
 );
 
 
 /* =========================================================
-   MATERIAL HELPER
+   WORLD GROUPS
 ========================================================= */
 
-function material(
+const groups = {
+
+  universe:
+    new THREE.Group(),
+
+  india:
+    new THREE.Group(),
+
+  city:
+    new THREE.Group()
+
+};
+
+scene.add(
+  groups.universe,
+  groups.india,
+  groups.city
+);
+
+groups.india.visible =
+  false;
+
+groups.city.visible =
+  false;
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function mat(
   color,
+  rough = 0.65,
   emissive = 0,
   intensity = 0
 ) {
@@ -240,9 +254,9 @@ function material(
 
     color,
 
-    roughness: .65,
+    roughness: rough,
 
-    metalness: .05,
+    metalness: 0.08,
 
     emissive,
 
@@ -254,10 +268,6 @@ function material(
 }
 
 
-/* =========================================================
-   SPHERE
-========================================================= */
-
 function sphere(
   radius,
   color,
@@ -268,17 +278,14 @@ function sphere(
   return new THREE.Mesh(
 
     new THREE.SphereGeometry(
-
       radius,
-
-      lowPower ? 18 : 26,
-
-      lowPower ? 12 : 18
-
+      low ? 18 : 28,
+      low ? 12 : 18
     ),
 
-    material(
+    mat(
       color,
+      0.55,
       emissive,
       intensity
     )
@@ -288,17 +295,258 @@ function sphere(
 }
 
 
+function makeLabel(
+  text,
+  color = "#fff",
+  width = 3.2
+) {
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+  canvas.width = 512;
+  canvas.height = 128;
+
+  const ctx =
+    canvas.getContext("2d");
+
+  ctx.clearRect(
+    0,
+    0,
+    512,
+    128
+  );
+
+  ctx.font =
+    "900 50px Arial";
+
+  ctx.fillStyle =
+    color;
+
+  ctx.textAlign =
+    "center";
+
+  ctx.textBaseline =
+    "middle";
+
+  ctx.shadowColor =
+    "rgba(255,100,190,.8)";
+
+  ctx.shadowBlur = 18;
+
+  ctx.fillText(
+    text,
+    256,
+    64
+  );
+
+  const texture =
+    new THREE.CanvasTexture(
+      canvas
+    );
+
+  texture.colorSpace =
+    THREE.SRGBColorSpace;
+
+  const sprite =
+    new THREE.Sprite(
+
+      new THREE.SpriteMaterial({
+        map: texture,
+
+        transparent: true,
+
+        depthWrite: false
+      })
+
+    );
+
+  sprite.scale.set(
+    width,
+    width * 0.25,
+    1
+  );
+
+  return sprite;
+}
+
+
+function glowSprite(
+  color,
+  size,
+  opacity = 0.22
+) {
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+  canvas.width = 256;
+  canvas.height = 256;
+
+  const ctx =
+    canvas.getContext("2d");
+
+  const gradient =
+    ctx.createRadialGradient(
+      128,
+      128,
+      2,
+      128,
+      128,
+      128
+    );
+
+  gradient.addColorStop(
+    0,
+    color
+  );
+
+  gradient.addColorStop(
+    1,
+    "rgba(0,0,0,0)"
+  );
+
+  ctx.fillStyle =
+    gradient;
+
+  ctx.fillRect(
+    0,
+    0,
+    256,
+    256
+  );
+
+  const texture =
+    new THREE.CanvasTexture(
+      canvas
+    );
+
+  const sprite =
+    new THREE.Sprite(
+
+      new THREE.SpriteMaterial({
+
+        map: texture,
+
+        transparent: true,
+
+        opacity,
+
+        depthWrite: false,
+
+        blending:
+          THREE.AdditiveBlending
+
+      })
+
+    );
+
+  sprite.scale.set(
+    size,
+    size,
+    1
+  );
+
+  return sprite;
+}
+
+
+function say(text) {
+
+  toast.textContent =
+    text;
+
+  toast.classList.add(
+    "show"
+  );
+
+  setTimeout(() => {
+
+    toast.classList.remove(
+      "show"
+    );
+
+  }, 1800);
+}
+
+
+function showEmote(text) {
+
+  emote.textContent =
+    text;
+
+  emote.classList.add(
+    "show"
+  );
+
+  setTimeout(() => {
+
+    emote.classList.remove(
+      "show"
+    );
+
+  }, 900);
+}
+
+
 /* =========================================================
-   SPACE
+   COSMIC NEBULAS
 ========================================================= */
 
-const space =
-  new THREE.Group();
+const nebulaData = [
+
+  [
+    "rgba(255,60,165,.18)",
+    [-45, 20, -70],
+    110
+  ],
+
+  [
+    "rgba(110,75,255,.16)",
+    [45, -10, -85],
+    120
+  ],
+
+  [
+    "rgba(255,145,205,.12)",
+    [0, 45, -120],
+    100
+  ],
+
+  [
+    "rgba(50,140,255,.09)",
+    [-70, -30, -110],
+    100
+  ]
+
+];
 
 
-scene.add(
-  space
-);
+for (
+  const [color, position, size]
+  of nebulaData
+) {
+
+  const glow =
+    glowSprite(
+      color,
+      size,
+      0.85
+    );
+
+  glow.position.set(
+    ...position
+  );
+
+  groups.universe.add(
+    glow
+  );
+
+}
 
 
 /* =========================================================
@@ -308,12 +556,10 @@ scene.add(
 const starGeometry =
   new THREE.BufferGeometry();
 
-
 const starPositions =
   new Float32Array(
     STAR_COUNT * 3
   );
-
 
 for (
   let i = 0;
@@ -321,37 +567,33 @@ for (
   i++
 ) {
 
-  const r =
+  const radius =
     100 +
-    Math.random() * 450;
+    Math.random() * 600;
 
-
-  const theta =
+  const angle =
     Math.random() *
-    Math.PI * 2;
+    Math.PI *
+    2;
 
-
-  const phi =
+  const vertical =
     Math.acos(
       2 * Math.random() - 1
     );
 
-
   starPositions[i * 3] =
-    r *
-    Math.sin(phi) *
-    Math.cos(theta);
-
+    radius *
+    Math.sin(vertical) *
+    Math.cos(angle);
 
   starPositions[i * 3 + 1] =
-    r *
-    Math.cos(phi);
-
+    radius *
+    Math.cos(vertical);
 
   starPositions[i * 3 + 2] =
-    r *
-    Math.sin(phi) *
-    Math.sin(theta);
+    radius *
+    Math.sin(vertical) *
+    Math.sin(angle);
 
 }
 
@@ -378,11 +620,11 @@ const stars =
       color: 0xffffff,
 
       size:
-        lowPower ? .7 : .85,
+        low ? 0.75 : 1.05,
 
       transparent: true,
 
-      opacity: .85,
+      opacity: 0.92,
 
       depthWrite: false
 
@@ -391,286 +633,454 @@ const stars =
   );
 
 
-space.add(
+groups.universe.add(
   stars
 );
 
 
 /* =========================================================
-   COLORED DISTANT STARS
+   TWINKLING STARS
 ========================================================= */
 
-const coloredStars =
-  new THREE.Group();
-
+const twinkles = [];
 
 for (
   let i = 0;
-  i < (lowPower ? 30 : 55);
+  i < (low ? 45 : 80);
   i++
 ) {
 
   const star =
     sphere(
-      .06 +
-      Math.random() * .1,
+      0.045 +
+      Math.random() * 0.09,
 
-      Math.random() > .5
-        ? 0xff9fca
-        : 0x8eb8ff,
+      i % 2
+        ? 0x9bbcff
+        : 0xff9acb,
 
-      Math.random() > .5
-        ? 0xff5fa7
-        : 0x4c75ff,
+      i % 2
+        ? 0x426dff
+        : 0xff3f9c,
 
-      2
+      3
     );
-
 
   star.position.set(
 
-    -90 +
-      Math.random() * 180,
-
-    -50 +
-      Math.random() * 100,
-
     -80 +
+      Math.random() * 160,
+
+    -45 +
+      Math.random() * 90,
+
+    -30 -
       Math.random() * 180
 
   );
 
+  groups.universe.add(
+    star
+  );
 
-  coloredStars.add(
+  twinkles.push(
     star
   );
 
 }
 
 
-space.add(
-  coloredStars
+/* =========================================================
+   SUN
+========================================================= */
+
+const sun =
+  sphere(
+    3.5,
+    0xffc14f,
+    0xff6d00,
+    3
+  );
+
+groups.universe.add(
+  sun
+);
+
+
+groups.universe.add(
+
+  glowSprite(
+    "rgba(255,150,50,.35)",
+    17,
+    0.9
+  )
+
 );
 
 
 /* =========================================================
-   NEBULA
+   PLANETS
 ========================================================= */
 
-function createNebula(
-  color,
-  position,
-  scale
+const planetDefinitions = [
+
+  {
+    distance: 8,
+    radius: 0.45,
+    color: 0xbfc2ca,
+    speed: 0.19
+  },
+
+  {
+    distance: 11,
+    radius: 0.72,
+    color: 0xc99b71,
+    speed: 0.15
+  },
+
+  {
+    distance: 15,
+    radius: 1.35,
+    color: 0x3e74ff,
+    speed: 0.10,
+    her: true
+  },
+
+  {
+    distance: 20,
+    radius: 0.76,
+    color: 0xc95745,
+    speed: 0.075
+  },
+
+  {
+    distance: 27,
+    radius: 1.9,
+    color: 0xb88f63,
+    speed: 0.042,
+    ring: true
+  }
+
+];
+
+
+const planets = [];
+
+
+for (
+  const data
+  of planetDefinitions
 ) {
 
-  const canvas =
-    document.createElement(
-      "canvas"
-    );
+  const orbit =
+    new THREE.Mesh(
 
+      new THREE.RingGeometry(
+        data.distance - 0.012,
+        data.distance + 0.012,
+        low ? 64 : 96
+      ),
 
-  canvas.width = 256;
+      new THREE.MeshBasicMaterial({
 
-  canvas.height = 256;
-
-
-  const ctx =
-    canvas.getContext(
-      "2d"
-    );
-
-
-  const gradient =
-    ctx.createRadialGradient(
-      128,
-      128,
-      5,
-      128,
-      128,
-      128
-    );
-
-
-  gradient.addColorStop(
-    0,
-    color
-  );
-
-
-  gradient.addColorStop(
-    1,
-    "rgba(0,0,0,0)"
-  );
-
-
-  ctx.fillStyle =
-    gradient;
-
-
-  ctx.fillRect(
-    0,
-    0,
-    256,
-    256
-  );
-
-
-  const texture =
-    new THREE.CanvasTexture(
-      canvas
-    );
-
-
-  const sprite =
-    new THREE.Sprite(
-
-      new THREE.SpriteMaterial({
-
-        map: texture,
+        color: 0x8b86a0,
 
         transparent: true,
 
-        depthWrite: false,
+        opacity: 0.23,
 
-        blending:
-          THREE.AdditiveBlending
+        side:
+          THREE.DoubleSide
 
       })
 
     );
 
+  orbit.rotation.x =
+    Math.PI / 2;
 
-  sprite.position.copy(
-    position
+  groups.universe.add(
+    orbit
   );
 
 
-  sprite.scale.set(
-    scale,
-    scale,
-    1
+  const planet =
+    sphere(
+      data.radius,
+      data.color,
+      data.her
+        ? 0x123cc0
+        : 0,
+      data.her
+        ? 0.8
+        : 0
+    );
+
+
+  planet.userData = {
+
+    her:
+      !!data.her,
+
+    distance:
+      data.distance,
+
+    speed:
+      data.speed,
+
+    angle:
+      Math.random() *
+      Math.PI *
+      2
+
+  };
+
+
+  groups.universe.add(
+    planet
+  );
+
+  planets.push(
+    planet
   );
 
 
-  space.add(
-    sprite
-  );
+  /* Saturn ring */
+
+  if (data.ring) {
+
+    const ring =
+      new THREE.Mesh(
+
+        new THREE.RingGeometry(
+          2.4,
+          3.3,
+          48
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0xdab88c,
+
+          transparent: true,
+
+          opacity: 0.55,
+
+          side:
+            THREE.DoubleSide
+
+        })
+
+      );
+
+    ring.rotation.x =
+      Math.PI / 2.5;
+
+    planet.add(
+      ring
+    );
+
+  }
+
+
+  /* HER */
+
+  if (data.her) {
+
+    const atmosphere =
+      new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+          1.48,
+          28,
+          18
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0x68a8ff,
+
+          transparent: true,
+
+          opacity: 0.13,
+
+          side:
+            THREE.BackSide,
+
+          blending:
+            THREE.AdditiveBlending
+
+        })
+
+      );
+
+    planet.add(
+      atmosphere
+    );
+
+
+    const herLabel =
+      makeLabel(
+        "HER",
+        "#ffd0e7",
+        2.5
+      );
+
+    herLabel.position.y =
+      2.1;
+
+    planet.add(
+      herLabel
+    );
+
+
+    /* ME */
+
+    const me =
+      sphere(
+        0.32,
+        0xff75b9,
+        0xff2d88,
+        4
+      );
+
+    me.userData.me =
+      true;
+
+    planet.add(
+      me
+    );
+
+
+    const meLabel =
+      makeLabel(
+        "ME",
+        "#ffc1dd",
+        1.5
+      );
+
+    meLabel.position.y =
+      0.7;
+
+    me.add(
+      meLabel
+    );
+
+
+    /* Heart particles */
+
+    for (
+      let i = 0;
+      i < 9;
+      i++
+    ) {
+
+      const heart =
+        sphere(
+          0.035,
+          0xff9bc9,
+          0xff4c9d,
+          3
+        );
+
+      heart.userData.h =
+        i;
+
+      planet.add(
+        heart
+      );
+
+    }
+
+  }
 
 }
 
 
-createNebula(
-  "rgba(100,40,140,.16)",
-  new THREE.Vector3(
-    -45,
-    15,
-    -40
-  ),
-  80
-);
-
-
-createNebula(
-  "rgba(20,80,180,.13)",
-  new THREE.Vector3(
-    50,
-    -10,
-    -60
-  ),
-  100
-);
-
-
-createNebula(
-  "rgba(255,50,130,.08)",
-  new THREE.Vector3(
-    0,
-    40,
-    -100
-  ),
-  90
-);
-
-
 /* =========================================================
-   SHOOTING STARS
+   ASTEROID BELT
 ========================================================= */
 
-const shootingStars = [];
+const asteroidGeometry =
+  new THREE.DodecahedronGeometry(
+    0.09,
+    0
+  );
+
+const asteroidMaterial =
+  mat(
+    0x76717d,
+    0.95
+  );
+
+const asteroidCount =
+  low ? 130 : 220;
+
+const asteroids =
+  new THREE.InstancedMesh(
+    asteroidGeometry,
+    asteroidMaterial,
+    asteroidCount
+  );
+
+const dummy =
+  new THREE.Object3D();
 
 
 for (
   let i = 0;
-  i < (lowPower ? 4 : 8);
+  i < asteroids.count;
   i++
 ) {
 
-  const line =
-    new THREE.Line(
+  const angle =
+    Math.random() *
+    Math.PI *
+    2;
 
-      new THREE.BufferGeometry()
-        .setFromPoints([
+  const radius =
+    23 +
+    Math.random() * 5;
 
-          new THREE.Vector3(
-            0,
-            0,
-            0
-          ),
+  dummy.position.set(
 
-          new THREE.Vector3(
-            -2,
-            .4,
-            0
-          )
+    Math.cos(angle) *
+      radius,
 
-        ]),
+    (Math.random() - 0.5) *
+      1.5,
 
-      new THREE.LineBasicMaterial({
-
-        color: 0xffffff,
-
-        transparent: true,
-
-        opacity: .6
-
-      })
-
-    );
-
-
-  line.position.set(
-
-    -35 +
-      Math.random() * 70,
-
-    -10 +
-      Math.random() * 40,
-
-    -30 -
-      Math.random() * 50
+    Math.sin(angle) *
+      radius
 
   );
 
+  const scale =
+    0.4 +
+    Math.random() * 1.5;
 
-  line.userData.speed =
-    .08 +
-    Math.random() * .08;
-
-
-  line.userData.reset =
-    line.position.x;
-
-
-  space.add(
-    line
+  dummy.scale.setScalar(
+    scale
   );
 
+  dummy.rotation.set(
+    Math.random() * 3,
+    Math.random() * 3,
+    Math.random() * 3
+  );
 
-  shootingStars.push(
-    line
+  dummy.updateMatrix();
+
+  asteroids.setMatrixAt(
+    i,
+    dummy.matrix
   );
 
 }
+
+groups.universe.add(
+  asteroids
+);
 
 
 /* =========================================================
@@ -679,187 +1089,192 @@ for (
 
 function createAstronaut() {
 
-  const astronaut =
+  const group =
     new THREE.Group();
 
+  group.userData.emote =
+    "idle";
 
-  /* helmet */
+
+  /* Helmet */
 
   const helmet =
     new THREE.Mesh(
 
       new THREE.SphereGeometry(
-        .48,
-        lowPower ? 12 : 16,
-        lowPower ? 8 : 12
+        0.5,
+        16,
+        12
       ),
 
-      material(
-        0xe9edf4,
+      mat(
+        0xf1f2f5,
+        0.35,
         0x111827,
-        .15
+        0.15
       )
 
     );
 
-
   helmet.position.y =
-    .85;
+    0.85;
 
-
-  astronaut.add(
+  group.add(
     helmet
   );
 
 
-  /* visor */
+  /* Visor */
 
   const visor =
     new THREE.Mesh(
 
       new THREE.SphereGeometry(
-        .3,
-        12,
-        8
+        0.3,
+        14,
+        10
       ),
 
-      material(
-        0x152238,
-        0x07152c,
-        .5
+      mat(
+        0x162b4c,
+        0.2,
+        0x071a38,
+        0.8
       )
 
     );
 
-
   visor.position.set(
     0,
-    .87,
-    .37
+    0.88,
+    0.38
   );
 
-
   visor.scale.z =
-    .35;
+    0.35;
 
-
-  astronaut.add(
+  group.add(
     visor
   );
 
 
-  /* body */
+  /* Body */
 
   const body =
     new THREE.Mesh(
 
       new THREE.BoxGeometry(
-        .65,
-        .8,
-        .42
+        0.65,
+        0.8,
+        0.42
       ),
 
-      material(
-        0xe5e7eb
+      mat(
+        0xe8e9ec,
+        0.55
       )
 
     );
 
-
   body.position.y =
-    .2;
+    0.15;
 
-
-  astronaut.add(
+  group.add(
     body
   );
 
 
-  /* arms */
+  /* Arms + legs */
 
-  [-1, 1].forEach(
-    side => {
+  for (
+    const side
+    of [-1, 1]
+  ) {
 
-      const arm =
-        new THREE.Mesh(
+    const arm =
+      new THREE.Mesh(
 
-          new THREE.BoxGeometry(
-            .18,
-            .65,
-            .18
-          ),
+        new THREE.BoxGeometry(
+          0.17,
+          0.62,
+          0.17
+        ),
 
-          material(
-            0xd9dde4
-          )
-
-        );
-
-
-      arm.position.set(
-
-        side * .46,
-
-        .2,
-
-        0
+        mat(
+          0xd7d9df,
+          0.55
+        )
 
       );
 
+    arm.position.set(
+      side * 0.45,
+      0.2,
+      0
+    );
 
-      arm.rotation.z =
-        side * .3;
+    arm.rotation.z =
+      side * 0.35;
+
+    arm.userData.arm =
+      side;
+
+    group.add(
+      arm
+    );
 
 
-      astronaut.add(
-        arm
+    const leg =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          0.2,
+          0.62,
+          0.2
+        ),
+
+        mat(
+          0xd7d9df,
+          0.55
+        )
+
       );
 
-    }
+    leg.position.set(
+      side * 0.18,
+      -0.55,
+      0
+    );
+
+    leg.userData.leg =
+      side;
+
+    group.add(
+      leg
+    );
+
+  }
+
+
+  const badge =
+    glowSprite(
+      "rgba(255,100,190,.8)",
+      1.8,
+      0.08
+    );
+
+  badge.position.set(
+    0,
+    0.1,
+    -0.25
+  );
+
+  group.add(
+    badge
   );
 
 
-  /* legs */
-
-  [-1, 1].forEach(
-    side => {
-
-      const leg =
-        new THREE.Mesh(
-
-          new THREE.BoxGeometry(
-            .2,
-            .6,
-            .2
-          ),
-
-          material(
-            0xd8dce3
-          )
-
-        );
-
-
-      leg.position.set(
-
-        side * .18,
-
-        -.55,
-
-        0
-
-      );
-
-
-      astronaut.add(
-        leg
-      );
-
-    }
-  );
-
-
-  return astronaut;
+  return group;
 
 }
 
@@ -869,42 +1284,40 @@ const astronauts = [];
 
 for (
   let i = 0;
-  i < (lowPower ? 2 : 4);
+  i < (low ? 3 : 6);
   i++
 ) {
 
   const astronaut =
     createAstronaut();
 
-
   astronaut.position.set(
 
-    -20 +
-      Math.random() * 40,
+    -26 +
+      Math.random() * 52,
 
-    -4 +
-      Math.random() * 18,
+    -3 +
+      Math.random() * 20,
 
-    -18 -
-      Math.random() * 25
+    -20 -
+      Math.random() * 45
 
   );
-
 
   astronaut.scale.setScalar(
-    .7 +
-    Math.random() * .5
+    0.65 +
+    Math.random() * 0.45
   );
-
 
   astronaut.userData.phase =
     Math.random() * 10;
 
+  astronaut.userData.baseY =
+    astronaut.position.y;
 
-  space.add(
+  groups.universe.add(
     astronaut
   );
-
 
   astronauts.push(
     astronaut
@@ -914,528 +1327,124 @@ for (
 
 
 /* =========================================================
-   SOLAR SYSTEM
-========================================================= */
-
-const solarSystem =
-  new THREE.Group();
-
-
-space.add(
-  solarSystem
-);
-
-
-/* =========================================================
-   SUN
-========================================================= */
-
-const sun =
-  sphere(
-    3.3,
-    0xffb341,
-    0xff6500,
-    2.5
-  );
-
-
-solarSystem.add(
-  sun
-);
-
-
-/* =========================================================
-   PLANETS
-========================================================= */
-
-const planets = [];
-
-
-const planetData = [
-
-  {
-    distance: 8,
-    size: .5,
-    color: 0xa8adb8,
-    speed: .18
-  },
-
-  {
-    distance: 11,
-    size: .72,
-    color: 0xc89a68,
-    speed: .14
-  },
-
-  {
-    distance: 15,
-    size: 1.35,
-    color: 0x3e72ff,
-    speed: .105,
-    her: true
-  },
-
-  {
-    distance: 20,
-    size: .75,
-    color: 0xc05242,
-    speed: .08
-  },
-
-  {
-    distance: 27,
-    size: 1.9,
-    color: 0xb99364,
-    speed: .045
-  }
-
-];
-
-
-function label(
-  text,
-  color = "#fff"
-) {
-
-  const canvas =
-    document.createElement(
-      "canvas"
-    );
-
-
-  canvas.width = 512;
-
-  canvas.height = 128;
-
-
-  const ctx =
-    canvas.getContext(
-      "2d"
-    );
-
-
-  ctx.font =
-    "700 52px Arial";
-
-
-  ctx.fillStyle =
-    color;
-
-
-  ctx.textAlign =
-    "center";
-
-
-  ctx.textBaseline =
-    "middle";
-
-
-  ctx.fillText(
-    text,
-    256,
-    64
-  );
-
-
-  const texture =
-    new THREE.CanvasTexture(
-      canvas
-    );
-
-
-  texture.colorSpace =
-    THREE.SRGBColorSpace;
-
-
-  const sprite =
-    new THREE.Sprite(
-
-      new THREE.SpriteMaterial({
-
-        map: texture,
-
-        transparent: true,
-
-        depthWrite: false
-
-      })
-
-    );
-
-
-  sprite.scale.set(
-    4,
-    1,
-    1
-  );
-
-
-  return sprite;
-
-}
-
-
-planetData.forEach(
-  data => {
-
-    /* orbit */
-
-    const orbit =
-      new THREE.Mesh(
-
-        new THREE.RingGeometry(
-
-          data.distance - .012,
-
-          data.distance + .012,
-
-          lowPower
-            ? 48
-            : 72
-
-        ),
-
-        new THREE.MeshBasicMaterial({
-
-          color: 0x626474,
-
-          transparent: true,
-
-          opacity: .16,
-
-          side:
-            THREE.DoubleSide
-
-        })
-
-      );
-
-
-    orbit.rotation.x =
-      Math.PI / 2;
-
-
-    solarSystem.add(
-      orbit
-    );
-
-
-    /* planet */
-
-    const planet =
-      sphere(
-
-        data.size,
-
-        data.color,
-
-        data.her
-          ? 0x153caa
-          : 0,
-
-        data.her
-          ? .65
-          : 0
-
-      );
-
-
-    planet.userData.distance =
-      data.distance;
-
-
-    planet.userData.speed =
-      data.speed;
-
-
-    planet.userData.angle =
-      Math.random() *
-      Math.PI * 2;
-
-
-    planet.userData.her =
-      Boolean(data.her);
-
-
-    solarSystem.add(
-      planet
-    );
-
-
-    planets.push(
-      planet
-    );
-
-
-    /* HER */
-
-    if (
-      data.her
-    ) {
-
-      const herLabel =
-        label(
-          "HER"
-        );
-
-
-      herLabel.position.y =
-        2;
-
-
-      herLabel.scale.set(
-        2.5,
-        .625,
-        1
-      );
-
-
-      planet.add(
-        herLabel
-      );
-
-
-      /* ME */
-
-      const me =
-        sphere(
-          .38,
-          0xff72b5,
-          0xff277e,
-          2
-        );
-
-
-      me.userData.me =
-        true;
-
-
-      planet.add(
-        me
-      );
-
-
-      const meLabel =
-        label(
-          "ME",
-          "#ffb5d6"
-        );
-
-
-      meLabel.position.y =
-        .7;
-
-
-      meLabel.scale.set(
-        1.8,
-        .45,
-        1
-      );
-
-
-      me.add(
-        meLabel
-      );
-
-    }
-
-  }
-);
-
-
-/* =========================================================
    INDIA
 ========================================================= */
 
-const india =
-  new THREE.Group();
-
-
-india.visible =
-  false;
-
-
-scene.add(
-  india
-);
-
-
-/* stylized large India */
-
-const indiaShape =
-  new THREE.Shape();
-
-
-indiaShape.moveTo(
-  -7, 6
-);
-
-indiaShape.lineTo(
-  -3, 7
-);
-
-indiaShape.lineTo(
-  2, 6
-);
-
-indiaShape.lineTo(
-  6, 2
-);
-
-indiaShape.lineTo(
-  4, -2
-);
-
-indiaShape.lineTo(
-  2, -7
-);
-
-indiaShape.lineTo(
-  -1, -5
-);
-
-indiaShape.lineTo(
-  -4, -2
-);
-
-indiaShape.lineTo(
-  -6, 2
-);
-
-indiaShape.closePath();
-
-
-const indiaGeometry =
-  new THREE.ExtrudeGeometry(
-
-    indiaShape,
-
-    {
-
-      depth: .65,
-
-      bevelEnabled: true,
-
-      bevelSize: .14,
-
-      bevelThickness: .1,
-
-      bevelSegments:
-        lowPower ? 1 : 2
-
-    }
-
-  );
-
-
-const indiaMesh =
+const indiaFloor =
   new THREE.Mesh(
 
-    indiaGeometry,
+    new THREE.CylinderGeometry(
+      12,
+      13,
+      0.55,
+      48
+    ),
 
-    material(
-      0x426746,
-      0x122a15,
-      .2
+    mat(
+      0x34563a,
+      0.9
     )
 
   );
 
+indiaFloor.position.y =
+  -0.4;
 
-indiaMesh.rotation.x =
-  -Math.PI / 2;
-
-
-india.add(
-  indiaMesh
+groups.india.add(
+  indiaFloor
 );
 
 
-/* =========================================================
-   INDIA LIGHTS
-========================================================= */
-
 for (
   let i = 0;
-  i < (lowPower ? 40 : 75);
+  i < 120;
   i++
 ) {
 
   const light =
     sphere(
-      .045,
-      0xffd27a,
-      0xffa600,
-      2
+      0.05,
+      0xffcf79,
+      0xffa61a,
+      4
     );
 
+  const angle =
+    Math.random() *
+    Math.PI *
+    2;
+
+  const radius =
+    2 +
+    Math.random() * 10;
 
   light.position.set(
 
-    -6 +
-      Math.random() * 12,
+    Math.cos(angle) *
+      radius,
 
-    .7,
+    0.2,
 
-    -5 +
-      Math.random() * 10
+    Math.sin(angle) *
+      radius
 
   );
 
-
-  india.add(
+  groups.india.add(
     light
   );
 
 }
 
 
-/* =========================================================
-   PATNA
-========================================================= */
+const indiaLabel =
+  makeLabel(
+    "INDIA",
+    "#ffd0e5",
+    5
+  );
+
+indiaLabel.position.y =
+  4;
+
+groups.india.add(
+  indiaLabel
+);
+
+
+/* Patna marker */
 
 const patna =
   sphere(
-    .4,
-    0xff6eaf,
-    0xff2383,
-    3
+    0.42,
+    0xff69b3,
+    0xff237e,
+    5
   );
 
-
 patna.position.set(
-  .7,
-  1,
+  0.5,
+  0.6,
   1.4
 );
-
 
 patna.userData.patna =
   true;
 
-
-india.add(
+groups.india.add(
   patna
 );
 
 
 const patnaLabel =
-  label(
+  makeLabel(
     "PATNA",
-    "#ffd2e6"
+    "#ffe0ee",
+    3.5
   );
-
 
 patnaLabel.position.y =
   1;
-
-
-patnaLabel.scale.set(
-  3,
-  .75,
-  1
-);
-
 
 patna.add(
   patnaLabel
@@ -1447,15 +1456,44 @@ patna.add(
 ========================================================= */
 
 const city =
-  new THREE.Group();
+  groups.city;
 
 
-city.visible =
-  false;
+/* Pink sky */
+
+const skyGlow =
+  glowSprite(
+    "rgba(255,100,180,.25)",
+    180,
+    0.85
+  );
+
+skyGlow.position.set(
+  0,
+  45,
+  -90
+);
+
+city.add(
+  skyGlow
+);
 
 
-scene.add(
-  city
+const blueGlow =
+  glowSprite(
+    "rgba(90,120,255,.15)",
+    160,
+    0.7
+  );
+
+blueGlow.position.set(
+  80,
+  30,
+  -120
+);
+
+city.add(
+  blueGlow
 );
 
 
@@ -1463,27 +1501,26 @@ scene.add(
    CITY GROUND
 ========================================================= */
 
-const cityGround =
+const ground =
   new THREE.Mesh(
 
     new THREE.PlaneGeometry(
-      80,
-      65
+      180,
+      150
     ),
 
-    material(
-      0x17231c
+    mat(
+      0x18251e,
+      0.95
     )
 
   );
 
-
-cityGround.rotation.x =
+ground.rotation.x =
   -Math.PI / 2;
 
-
 city.add(
-  cityGround
+  ground
 );
 
 
@@ -1495,51 +1532,88 @@ const ganga =
   new THREE.Mesh(
 
     new THREE.PlaneGeometry(
-      80,
-      13
+      180,
+      30
     ),
 
     new THREE.MeshStandardMaterial({
 
-      color: 0x234f6a,
+      color: 0x245879,
 
-      roughness: .2,
+      roughness: 0.18,
 
-      metalness: .25
+      metalness: 0.35,
+
+      emissive: 0x06243a,
+
+      emissiveIntensity: 0.35
 
     })
 
   );
 
-
 ganga.rotation.x =
   -Math.PI / 2;
 
-
 ganga.position.set(
   0,
-  .03,
-  18
+  0.03,
+  43
 );
-
 
 city.add(
   ganga
 );
 
 
+/* Water reflections */
+
+for (
+  let i = 0;
+  i < 120;
+  i++
+) {
+
+  const light =
+    sphere(
+      0.035,
+      0xffd98b,
+      0xffa400,
+      2.5
+    );
+
+  light.position.set(
+
+    -80 +
+      Math.random() * 160,
+
+    0.08,
+
+    30 +
+      Math.random() * 25
+
+  );
+
+  city.add(
+    light
+  );
+
+}
+
+
 /* =========================================================
    ROADS
 ========================================================= */
 
-function road(
+function createRoad(
   x,
   z,
   width,
-  depth
+  depth,
+  rotation = 0
 ) {
 
-  const mesh =
+  const road =
     new THREE.Mesh(
 
       new THREE.PlaneGeometry(
@@ -1547,211 +1621,1601 @@ function road(
         depth
       ),
 
-      material(
-        0x28272b
+      mat(
+        0x292a30,
+        0.95
       )
 
     );
 
-
-  mesh.rotation.x =
+  road.rotation.x =
     -Math.PI / 2;
 
+  road.rotation.z =
+    rotation;
 
-  mesh.position.set(
+  road.position.set(
     x,
-    .06,
+    0.06,
     z
   );
 
-
   city.add(
-    mesh
+    road
   );
 
 }
 
 
-road(
+createRoad(
   0,
-  4,
-  80,
-  3
+  0,
+  170,
+  5
+);
+
+createRoad(
+  -30,
+  8,
+  5,
+  80
+);
+
+createRoad(
+  30,
+  8,
+  5,
+  80
+);
+
+createRoad(
+  0,
+  -18,
+  150,
+  4
+);
+
+createRoad(
+  0,
+  22,
+  150,
+  4
 );
 
 
-road(
-  -16,
-  0,
-  3,
-  60
-);
+/* Road markings */
 
+for (
+  let x = -75;
+  x < 75;
+  x += 7
+) {
 
-road(
-  17,
-  0,
-  3,
-  60
-);
+  const marking =
+    new THREE.Mesh(
+
+      new THREE.PlaneGeometry(
+        3,
+        0.12
+      ),
+
+      mat(
+        0xe8e3d2,
+        0.7
+      )
+
+    );
+
+  marking.rotation.x =
+    -Math.PI / 2;
+
+  marking.position.set(
+    x,
+    0.08,
+    0
+  );
+
+  city.add(
+    marking
+  );
+
+}
 
 
 /* =========================================================
    BUILDINGS
 ========================================================= */
 
+const buildingGeometry =
+  new THREE.BoxGeometry(
+    1,
+    1,
+    1
+  );
+
+const buildingMaterial =
+  mat(
+    0x55515e,
+    0.8
+  );
+
+
 const buildingCount =
-  lowPower ? 70 : 105;
+  low ? 220 : 360;
+
+
+const buildings =
+  new THREE.InstancedMesh(
+
+    buildingGeometry,
+
+    buildingMaterial,
+
+    buildingCount
+
+  );
 
 
 for (
   let i = 0;
-  i < buildingCount;
+  i < buildings.count;
   i++
 ) {
+
+  let x =
+    -78 +
+    Math.random() *
+    156;
+
+  let z =
+    -40 +
+    Math.random() *
+    75;
+
+
+  if (
+    Math.abs(z) < 3 ||
+    Math.abs(x) < 3 ||
+    z > 30
+  ) {
+
+    i--;
+
+    continue;
+
+  }
+
 
   const width =
-    .7 +
-    Math.random() * 1.8;
-
+    0.8 +
+    Math.random() * 2.7;
 
   const depth =
-    .7 +
-    Math.random() * 1.8;
-
+    0.8 +
+    Math.random() * 2.7;
 
   const height =
-    .8 +
-    Math.random() * 4.5;
+    1.5 +
+    Math.random() * 11;
 
 
-  const building =
-    new THREE.Mesh(
-
-      new THREE.BoxGeometry(
-        width,
-        height,
-        depth
-      ),
-
-      material(
-
-        Math.random() > .8
-          ? 0x655765
-          : 0x46464e
-
-      )
-
-    );
-
-
-  building.position.set(
-
-    -35 +
-      Math.random() * 70,
-
+  dummy.position.set(
+    x,
     height / 2,
-
-    -27 +
-      Math.random() * 42
-
+    z
   );
 
-
-  city.add(
-    building
+  dummy.scale.set(
+    width,
+    height,
+    depth
   );
 
-}
+  dummy.rotation.y =
+    Math.random() *
+    Math.PI;
+
+  dummy.updateMatrix();
 
 
-/* =========================================================
-   STREET LIGHTS
-========================================================= */
-
-const streetLights =
-  new THREE.Group();
-
-
-for (
-  let i = 0;
-  i < 22;
-  i++
-) {
-
-  const pole =
-    new THREE.Mesh(
-
-      new THREE.CylinderGeometry(
-        .035,
-        .055,
-        2.2,
-        6
-      ),
-
-      material(
-        0x50505a
-      )
-
-    );
-
-
-  pole.position.set(
-
-    -35 +
-      i * 3.3,
-
-    1.1,
-
-    5.4
-
-  );
-
-
-  streetLights.add(
-    pole
-  );
-
-
-  const lamp =
-    sphere(
-      .1,
-      0xffd58a,
-      0xffa91c,
-      4
-    );
-
-
-  lamp.position.set(
-
-    pole.position.x,
-
-    2.25,
-
-    pole.position.z
-
-  );
-
-
-  streetLights.add(
-    lamp
+  buildings.setMatrixAt(
+    i,
+    dummy.matrix
   );
 
 }
 
 
 city.add(
-  streetLights
+  buildings
 );
 
 
 /* =========================================================
-   POSTERS
+   BUILDING WINDOWS
+========================================================= */
+
+const windowGeometry =
+  new THREE.BoxGeometry(
+    0.08,
+    0.12,
+    0.03
+  );
+
+const windowMaterial =
+  mat(
+    0xffd77c,
+    0.35,
+    0xffa31a,
+    2.2
+  );
+
+
+const windowCount =
+  low ? 650 : 1100;
+
+
+const windows =
+  new THREE.InstancedMesh(
+
+    windowGeometry,
+
+    windowMaterial,
+
+    windowCount
+
+  );
+
+
+for (
+  let i = 0;
+  i < windows.count;
+  i++
+) {
+
+  const x =
+    -75 +
+    Math.random() *
+    150;
+
+  const z =
+    -38 +
+    Math.random() *
+    72;
+
+  const y =
+    0.8 +
+    Math.random() *
+    12;
+
+
+  dummy.position.set(
+    x,
+    y,
+    z
+  );
+
+  dummy.scale.set(
+    1,
+    1,
+    1
+  );
+
+  dummy.updateMatrix();
+
+
+  windows.setMatrixAt(
+    i,
+    dummy.matrix
+  );
+
+}
+
+
+city.add(
+  windows
+);
+
+
+/* =========================================================
+   TREES
+========================================================= */
+
+const trunkGeometry =
+  new THREE.CylinderGeometry(
+    0.12,
+    0.16,
+    1.4,
+    6
+  );
+
+const trunkMaterial =
+  mat(
+    0x523b2c
+  );
+
+const foliageGeometry =
+  new THREE.SphereGeometry(
+    0.8,
+    8,
+    6
+  );
+
+const foliageMaterial =
+  mat(
+    0x285d3c
+  );
+
+
+const trees =
+  new THREE.Group();
+
+
+for (
+  let i = 0;
+  i < (low ? 90 : 150);
+  i++
+) {
+
+  const x =
+    -78 +
+    Math.random() *
+    156;
+
+  const z =
+    -38 +
+    Math.random() *
+    72;
+
+
+  if (
+    Math.abs(x) < 4 ||
+    Math.abs(z) < 4
+  ) {
+
+    continue;
+
+  }
+
+
+  const trunk =
+    new THREE.Mesh(
+      trunkGeometry,
+      trunkMaterial
+    );
+
+  trunk.position.set(
+    x,
+    0.7,
+    z
+  );
+
+  trees.add(
+    trunk
+  );
+
+
+  const foliage =
+    new THREE.Mesh(
+      foliageGeometry,
+      foliageMaterial
+    );
+
+  foliage.position.set(
+    x,
+    1.7,
+    z
+  );
+
+  foliage.scale.setScalar(
+    0.7 +
+    Math.random() * 0.7
+  );
+
+  trees.add(
+    foliage
+  );
+
+}
+
+
+city.add(
+  trees
+);
+
+
+/* =========================================================
+   STREET LIGHTS
+========================================================= */
+
+for (
+  let x = -70;
+  x <= 70;
+  x += 5
+) {
+
+  const pole =
+    new THREE.Mesh(
+
+      new THREE.CylinderGeometry(
+        0.045,
+        0.065,
+        2.8,
+        6
+      ),
+
+      mat(
+        0x4c4d55
+      )
+
+    );
+
+  pole.position.set(
+    x,
+    1.4,
+    3.2
+  );
+
+  city.add(
+    pole
+  );
+
+
+  const lamp =
+    sphere(
+      0.13,
+      0xffd98a,
+      0xffa71a,
+      4
+    );
+
+  lamp.position.set(
+    x,
+    2.8,
+    3.2
+  );
+
+  city.add(
+    lamp
+  );
+
+}
+
+
+/* =========================================================
+   CARS
+========================================================= */
+
+const carGeometry =
+  new THREE.BoxGeometry(
+    1.1,
+    0.35,
+    0.55
+  );
+
+const carMaterial =
+  mat(
+    0x9b4d5d,
+    0.5,
+    0x21070e,
+    0.2
+  );
+
+
+const cars =
+  new THREE.InstancedMesh(
+
+    carGeometry,
+
+    carMaterial,
+
+    low ? 35 : 65
+
+  );
+
+
+for (
+  let i = 0;
+  i < cars.count;
+  i++
+) {
+
+  dummy.position.set(
+
+    -75 +
+      Math.random() * 150,
+
+    0.35,
+
+    Math.random() > 0.5
+      ? -0.7
+      : 0.7
+
+  );
+
+  dummy.scale.set(
+    0.8 +
+      Math.random() * 0.5,
+
+    0.8,
+
+    1
+  );
+
+  dummy.rotation.y =
+    Math.random() > 0.5
+      ? 0
+      : Math.PI;
+
+  dummy.updateMatrix();
+
+  cars.setMatrixAt(
+    i,
+    dummy.matrix
+  );
+
+}
+
+
+city.add(
+  cars
+);
+
+
+/* =========================================================
+   AUTO RICKSHAWS
+========================================================= */
+
+const autoGeometry =
+  new THREE.BoxGeometry(
+    0.9,
+    0.5,
+    0.65
+  );
+
+const autoMaterial =
+  mat(
+    0x1e9b70,
+    0.6,
+    0x063a2b,
+    0.3
+  );
+
+
+const autos =
+  new THREE.InstancedMesh(
+
+    autoGeometry,
+
+    autoMaterial,
+
+    low ? 20 : 35
+
+  );
+
+
+for (
+  let i = 0;
+  i < autos.count;
+  i++
+) {
+
+  dummy.position.set(
+
+    -70 +
+      Math.random() * 140,
+
+    0.5,
+
+    8 +
+      Math.random() * 15
+
+  );
+
+  dummy.rotation.y =
+    Math.random() > 0.5
+      ? 0
+      : Math.PI;
+
+  dummy.updateMatrix();
+
+  autos.setMatrixAt(
+    i,
+    dummy.matrix
+  );
+
+}
+
+
+city.add(
+  autos
+);
+
+
+/* =========================================================
+   PEOPLE
+========================================================= */
+
+const personGeometry =
+  new THREE.CapsuleGeometry(
+    0.12,
+    0.55,
+    4,
+    7
+  );
+
+const personMaterial =
+  mat(
+    0xd8b4a0,
+    0.9
+  );
+
+
+const people =
+  new THREE.InstancedMesh(
+
+    personGeometry,
+
+    personMaterial,
+
+    low ? 180 : 320
+
+  );
+
+
+for (
+  let i = 0;
+  i < people.count;
+  i++
+) {
+
+  const x =
+    -78 +
+    Math.random() *
+    156;
+
+  const z =
+    -35 +
+    Math.random() *
+    60;
+
+
+  dummy.position.set(
+    x,
+    0.45,
+    z
+  );
+
+  dummy.scale.setScalar(
+    0.7 +
+    Math.random() * 0.6
+  );
+
+  dummy.rotation.y =
+    Math.random() *
+    Math.PI *
+    2;
+
+  dummy.updateMatrix();
+
+  people.setMatrixAt(
+    i,
+    dummy.matrix
+  );
+
+}
+
+
+city.add(
+  people
+);
+
+
+/* =========================================================
+   BOATS
+========================================================= */
+
+const boats = [];
+
+
+for (
+  let i = 0;
+  i < (low ? 8 : 14);
+  i++
+) {
+
+  const boat =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        2.4,
+        0.25,
+        0.65
+      ),
+
+      mat(
+        0x6b4735,
+        0.85
+      )
+
+    );
+
+  boat.position.set(
+
+    -70 +
+      Math.random() * 140,
+
+    0.25,
+
+    35 +
+      Math.random() * 20
+
+  );
+
+  boat.userData.speed =
+    0.015 +
+    Math.random() * 0.025;
+
+  city.add(
+    boat
+  );
+
+  boats.push(
+    boat
+  );
+
+}
+
+
+/* =========================================================
+   LANDMARK HELPER
+========================================================= */
+
+function landmarkLabel(
+  name,
+  position
+) {
+
+  const label =
+    makeLabel(
+      name,
+      "#ffe1ec",
+      3.7
+    );
+
+  label.position.copy(
+    position
+  );
+
+  city.add(
+    label
+  );
+
+  return label;
+}
+
+
+/* =========================================================
+   GOLGHAR
+========================================================= */
+
+const golghar =
+  new THREE.Group();
+
+golghar.position.set(
+  -27,
+  0,
+  -8
+);
+
+golghar.userData.landmark =
+  "Golghar";
+
+
+const golgharBase =
+  new THREE.Mesh(
+
+    new THREE.CylinderGeometry(
+      3.6,
+      4,
+      1.1,
+      32
+    ),
+
+    mat(
+      0xc48b57
+    )
+
+  );
+
+golgharBase.position.y =
+  0.55;
+
+golghar.add(
+  golgharBase
+);
+
+
+const golgharDome =
+  new THREE.Mesh(
+
+    new THREE.SphereGeometry(
+      3.8,
+      28,
+      18,
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI / 2
+    ),
+
+    mat(
+      0xb97643
+    )
+
+  );
+
+golgharDome.scale.y =
+  1.25;
+
+golgharDome.position.y =
+  1.05;
+
+golghar.add(
+  golgharDome
+);
+
+
+/* spiral staircase illusion */
+
+for (
+  let i = 0;
+  i < 75;
+  i++
+) {
+
+  const angle =
+    i / 75 *
+    Math.PI *
+    5.4;
+
+  const step =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        0.2,
+        0.05,
+        0.7
+      ),
+
+      mat(
+        0x754d35
+      )
+
+    );
+
+  step.position.set(
+
+    Math.cos(angle) *
+      3.9,
+
+    0.5 +
+      i / 75 * 5,
+
+    Math.sin(angle) *
+      3.9
+
+  );
+
+  step.rotation.y =
+    -angle;
+
+  golghar.add(
+    step
+  );
+
+}
+
+
+golghar.add(
+
+  landmarkLabel(
+    "GOLGHAR",
+    new THREE.Vector3(
+      0,
+      7,
+      0
+    )
+  )
+
+);
+
+
+city.add(
+  golghar
+);
+
+
+/* =========================================================
+   GANDHI MAIDAN
+========================================================= */
+
+const maidan =
+  new THREE.Mesh(
+
+    new THREE.CircleGeometry(
+      8,
+      40
+    ),
+
+    mat(
+      0x3e7a48,
+      0.95
+    )
+
+  );
+
+maidan.rotation.x =
+  -Math.PI / 2;
+
+maidan.position.set(
+  5,
+  0.09,
+  -4
+);
+
+city.add(
+  maidan
+);
+
+landmarkLabel(
+  "GANDHI MAIDAN",
+  new THREE.Vector3(
+    5,
+    1,
+    -4
+  )
+);
+
+
+/* =========================================================
+   OLD SECRETARIAT
+========================================================= */
+
+const secretariat =
+  new THREE.Group();
+
+secretariat.position.set(
+  35,
+  0,
+  -12
+);
+
+
+const secretariatBody =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      13,
+      4,
+      4
+    ),
+
+    mat(
+      0x8c5041
+    )
+
+  );
+
+secretariatBody.position.y =
+  2;
+
+secretariat.add(
+  secretariatBody
+);
+
+
+const tower =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      2.4,
+      8,
+      2.4
+    ),
+
+    mat(
+      0x9b5947
+    )
+
+  );
+
+tower.position.y =
+  4;
+
+secretariat.add(
+  tower
+);
+
+
+const clock =
+  sphere(
+    0.55,
+    0xf2dfbb,
+    0xffc66e,
+    0.4
+  );
+
+clock.position.set(
+  0,
+  6.4,
+  1.23
+);
+
+secretariat.add(
+  clock
+);
+
+
+secretariat.add(
+
+  landmarkLabel(
+    "OLD SECRETARIAT",
+    new THREE.Vector3(
+      0,
+      9,
+      0
+    )
+  )
+
+);
+
+city.add(
+  secretariat
+);
+
+
+/* =========================================================
+   BIHAR MUSEUM
+========================================================= */
+
+const museum =
+  new THREE.Group();
+
+museum.position.set(
+  23,
+  0,
+  10
+);
+
+
+const museumBody =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      9,
+      3,
+      5
+    ),
+
+    mat(
+      0x6f625d
+    )
+
+  );
+
+museumBody.position.y =
+  1.5;
+
+museum.add(
+  museumBody
+);
+
+
+const museumRoof =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      10,
+      0.5,
+      6
+    ),
+
+    mat(
+      0x403a3a
+    )
+
+  );
+
+museumRoof.position.y =
+  3.2;
+
+museum.add(
+  museumRoof
+);
+
+
+museum.add(
+
+  landmarkLabel(
+    "BIHAR MUSEUM",
+    new THREE.Vector3(
+      0,
+      5,
+      0
+    )
+  )
+
+);
+
+city.add(
+  museum
+);
+
+
+/* =========================================================
+   PATNA JUNCTION + MAHAVIR MANDIR
+========================================================= */
+
+const station =
+  new THREE.Group();
+
+station.position.set(
+  -2,
+  0,
+  20
+);
+
+
+const stationBody =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      10,
+      3.5,
+      3
+    ),
+
+    mat(
+      0x6c5a52
+    )
+
+  );
+
+stationBody.position.y =
+  1.75;
+
+station.add(
+  stationBody
+);
+
+
+const stationSign =
+  makeLabel(
+    "PATNA JUNCTION",
+    "#fff1bf",
+    4.5
+  );
+
+stationSign.position.set(
+  0,
+  4.6,
+  0
+);
+
+station.add(
+  stationSign
+);
+
+
+/* Mahavir Mandir */
+
+const temple =
+  new THREE.Mesh(
+
+    new THREE.ConeGeometry(
+      1.8,
+      4,
+      6
+    ),
+
+    mat(
+      0xd76d42
+    )
+
+  );
+
+temple.position.set(
+  7,
+  2,
+  0
+);
+
+station.add(
+  temple
+);
+
+
+const templeLabel =
+  makeLabel(
+    "MAHAVIR MANDIR",
+    "#ffe0ad",
+    3
+  );
+
+templeLabel.position.set(
+  7,
+  5,
+  0
+);
+
+station.add(
+  templeLabel
+);
+
+
+city.add(
+  station
+);
+
+
+/* =========================================================
+   GANDHI GHAT
+========================================================= */
+
+const ghat =
+  new THREE.Group();
+
+ghat.position.set(
+  -15,
+  0,
+  31
+);
+
+
+for (
+  let i = 0;
+  i < 8;
+  i++
+) {
+
+  const step =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        12,
+        0.18,
+        1
+      ),
+
+      mat(
+        0x89766d
+      )
+
+    );
+
+  step.position.set(
+    0,
+    0.12,
+    i
+  );
+
+  ghat.add(
+    step
+  );
+
+}
+
+
+/* Ghat lamps */
+
+for (
+  let i = 0;
+  i < 18;
+  i++
+) {
+
+  const lamp =
+    sphere(
+      0.11,
+      0xffcf72,
+      0xff9f13,
+      5
+    );
+
+  lamp.position.set(
+
+    -5.5 +
+      (i % 2) * 11,
+
+    0.8,
+
+    i * 0.55
+
+  );
+
+  ghat.add(
+    lamp
+  );
+
+}
+
+
+ghat.add(
+
+  landmarkLabel(
+    "GANDHI GHAT",
+    new THREE.Vector3(
+      0,
+      2.5,
+      0
+    )
+  )
+
+);
+
+
+city.add(
+  ghat
+);
+
+
+/* =========================================================
+   GANDHI SETU
+========================================================= */
+
+const setu =
+  new THREE.Group();
+
+setu.position.set(
+  58,
+  4,
+  22
+);
+
+setu.rotation.y =
+  0.05;
+
+
+const bridgeDeck =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      85,
+      0.6,
+      2.2
+    ),
+
+    mat(
+      0x69656b
+    )
+
+  );
+
+setu.add(
+  bridgeDeck
+);
+
+
+for (
+  let i = 0;
+  i < 18;
+  i++
+) {
+
+  const pillar =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        0.45,
+        10,
+        0.45
+      ),
+
+      mat(
+        0x77737a
+      )
+
+    );
+
+  pillar.position.set(
+    -40 + i * 5,
+    5,
+    0
+  );
+
+  setu.add(
+    pillar
+  );
+
+}
+
+
+city.add(
+  setu
+);
+
+
+/* =========================================================
+   JP GANGA PATH
+========================================================= */
+
+const gangaPath =
+  new THREE.Mesh(
+
+    new THREE.PlaneGeometry(
+      160,
+      5
+    ),
+
+    mat(
+      0x2d2d35,
+      0.9
+    )
+
+  );
+
+gangaPath.rotation.x =
+  -Math.PI / 2;
+
+gangaPath.position.set(
+  0,
+  0.11,
+  26
+);
+
+city.add(
+  gangaPath
+);
+
+
+for (
+  let x = -75;
+  x < 75;
+  x += 6
+) {
+
+  const marking =
+    new THREE.Mesh(
+
+      new THREE.PlaneGeometry(
+        3,
+        0.12
+      ),
+
+      mat(
+        0xf0e7d2,
+        0.7
+      )
+
+    );
+
+  marking.rotation.x =
+    -Math.PI / 2;
+
+  marking.position.set(
+    x,
+    0.13,
+    26
+  );
+
+  city.add(
+    marking
+  );
+
+}
+
+
+landmarkLabel(
+  "JP GANGA PATH",
+  new THREE.Vector3(
+    45,
+    1,
+    26
+  )
+);
+
+
+/* =========================================================
+   SABHYATA DWAR
+========================================================= */
+
+const dwar =
+  new THREE.Group();
+
+dwar.position.set(
+  28,
+  0,
+  30
+);
+
+
+const leftPillar =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      2,
+      7,
+      1.5
+    ),
+
+    mat(
+      0xa45e4b
+    )
+
+  );
+
+leftPillar.position.x =
+  -2;
+
+dwar.add(
+  leftPillar
+);
+
+
+const rightPillar =
+  leftPillar.clone();
+
+rightPillar.position.x =
+  2;
+
+dwar.add(
+  rightPillar
+);
+
+
+const dwarTop =
+  new THREE.Mesh(
+
+    new THREE.BoxGeometry(
+      6,
+      1.5,
+      1.5
+    ),
+
+    mat(
+      0xa45e4b
+    )
+
+  );
+
+dwarTop.position.y =
+  6.3;
+
+dwar.add(
+  dwarTop
+);
+
+
+dwar.add(
+
+  landmarkLabel(
+    "SABHYATA DWAR",
+    new THREE.Vector3(
+      0,
+      8,
+      0
+    )
+  )
+
+);
+
+
+city.add(
+  dwar
+);
+
+
+/* =========================================================
+   BIRTHDAY POSTERS
 ========================================================= */
 
 function createPoster(
   text,
-  subtext
+  sub,
+  x,
+  z,
+  rotation = 0
 ) {
 
   const canvas =
@@ -1759,116 +3223,65 @@ function createPoster(
       "canvas"
     );
 
-
   canvas.width = 512;
-
-  canvas.height = 700;
-
+  canvas.height = 680;
 
   const ctx =
-    canvas.getContext(
-      "2d"
-    );
+    canvas.getContext("2d");
 
-
-  /* background */
 
   const gradient =
     ctx.createLinearGradient(
       0,
       0,
       0,
-      700
+      680
     );
-
 
   gradient.addColorStop(
     0,
-    "#25132b"
+    "#3b123c"
   );
-
 
   gradient.addColorStop(
     1,
-    "#130b20"
+    "#13091d"
   );
 
 
   ctx.fillStyle =
     gradient;
 
-
   ctx.fillRect(
     0,
     0,
     512,
-    700
+    680
   );
-
-
-  /* stars */
-
-  for (
-    let i = 0;
-    i < 50;
-    i++
-  ) {
-
-    ctx.fillStyle =
-      "rgba(255,255,255,.7)";
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-
-      Math.random() * 512,
-
-      Math.random() * 300,
-
-      Math.random() * 2,
-
-      0,
-
-      Math.PI * 2
-
-    );
-
-    ctx.fill();
-
-  }
-
-
-  /* heart */
-
-  ctx.fillStyle =
-    "#ff6fae";
-
-
-  ctx.font =
-    "100px Arial";
 
 
   ctx.textAlign =
     "center";
 
 
+  ctx.fillStyle =
+    "#ff75b9";
+
+  ctx.font =
+    "90px Arial";
+
   ctx.fillText(
     "♥",
     256,
-    180
+    170
   );
 
-
-  /* main */
 
   ctx.fillStyle =
     "#ffffff";
 
-
   ctx.font =
-    "bold 46px Arial";
-
+    "900 48px Arial";
 
   ctx.fillText(
     text,
@@ -1877,33 +3290,29 @@ function createPoster(
   );
 
 
-  ctx.font =
-    "bold 25px Arial";
-
-
   ctx.fillStyle =
-    "#ffb7d4";
+    "#ffc0dc";
 
+  ctx.font =
+    "700 27px Arial";
 
   ctx.fillText(
-    subtext,
+    sub,
     256,
     355
   );
 
 
-  ctx.font =
-    "18px Arial";
-
-
   ctx.fillStyle =
-    "#c5bdc9";
+    "#d6cbd7";
 
+  ctx.font =
+    "20px Arial";
 
   ctx.fillText(
-    "20 years of being wonderful ✦",
+    "20 looks beautiful on you.",
     256,
-    440
+    430
   );
 
 
@@ -1911,7 +3320,6 @@ function createPoster(
     new THREE.CanvasTexture(
       canvas
     );
-
 
   texture.colorSpace =
     THREE.SRGBColorSpace;
@@ -1922,514 +3330,238 @@ function createPoster(
 
       new THREE.PlaneGeometry(
         3,
-        4.1
+        4
       ),
 
       new THREE.MeshBasicMaterial({
-
         map: texture,
 
         side:
           THREE.DoubleSide
-
       })
 
     );
 
 
-  return poster;
-
-}
-
-
-const poster1 =
-  createPoster(
-    "HAPPY",
-    "BIRTHDAY ❤️"
+  poster.position.set(
+    x,
+    2.6,
+    z
   );
 
-
-poster1.position.set(
-  -8,
-  2.8,
-  3
-);
-
-
-poster1.rotation.y =
-  Math.PI / 2;
-
-
-city.add(
-  poster1
-);
-
-
-const poster2 =
-  createPoster(
-    "20 ✦",
-    "JUST FOR HER"
-  );
-
-
-poster2.position.set(
-  10,
-  2.8,
-  3
-);
-
-
-poster2.rotation.y =
-  -Math.PI / 2;
-
-
-city.add(
-  poster2
-);
-
-
-const poster3 =
-  createPoster(
-    "FOR HER",
-    "WITH LOVE"
-  );
-
-
-poster3.position.set(
-  -5,
-  2.8,
-  -10
-);
-
-
-city.add(
-  poster3
-);
-
-
-/* =========================================================
-   GOLGHAR
-========================================================= */
-
-const golghar =
-  new THREE.Group();
-
-
-golghar.position.set(
-  0,
-  0,
-  -5
-);
-
-
-golghar.userData.golghar =
-  true;
-
-
-/* base */
-
-const base =
-  new THREE.Mesh(
-
-    new THREE.CylinderGeometry(
-      3.4,
-      3.8,
-      1.2,
-      lowPower ? 24 : 32
-    ),
-
-    material(
-      0xc68d58
-    )
-
-  );
-
-
-base.position.y =
-  .6;
-
-
-golghar.add(
-  base
-);
-
-
-/* dome */
-
-const dome =
-  new THREE.Mesh(
-
-    new THREE.SphereGeometry(
-      3.7,
-      lowPower ? 22 : 30,
-      lowPower ? 14 : 18,
-      0,
-      Math.PI * 2,
-      0,
-      Math.PI / 2
-    ),
-
-    material(
-      0xb97842
-    )
-
-  );
-
-
-dome.scale.y =
-  1.25;
-
-
-dome.position.y =
-  1.1;
-
-
-golghar.add(
-  dome
-);
-
-
-/* stairs */
-
-const stairs =
-  lowPower ? 65 : 100;
-
-
-for (
-  let i = 0;
-  i < stairs;
-  i++
-) {
-
-  const angle =
-    i /
-    stairs *
-    Math.PI *
-    5.4;
-
-
-  const y =
-    .4 +
-    i / stairs *
-    5;
-
-
-  const stair =
-    new THREE.Mesh(
-
-      new THREE.BoxGeometry(
-        .2,
-        .045,
-        .7
-      ),
-
-      material(
-        0x754f37
-      )
-
-    );
-
-
-  stair.position.set(
-
-    Math.cos(angle) *
-      3.9,
-
-    y,
-
-    Math.sin(angle) *
-      3.9
-
-  );
-
-
-  stair.rotation.y =
-    -angle;
-
-
-  golghar.add(
-    stair
+  poster.rotation.y =
+    rotation;
+
+  city.add(
+    poster
   );
 
 }
 
 
-/* label */
-
-const golgharLabel =
-  label(
-    "GOLGHAR",
-    "#ffe2ad"
-  );
-
-
-golgharLabel.position.y =
-  6.5;
-
-
-golgharLabel.scale.set(
-  4,
-  1,
-  1
+createPoster(
+  "HAPPY 20TH",
+  "BIRTHDAY, HER",
+  -12,
+  -1,
+  0.2
 );
 
 
-golghar.add(
-  golgharLabel
+createPoster(
+  "FOR HER",
+  "WITH LOVE",
+  12,
+  -1,
+  -0.2
 );
 
 
-city.add(
-  golghar
+createPoster(
+  "20 ✦",
+  "MY FAVOURITE",
+  0,
+  15,
+  0
 );
 
 
 /* =========================================================
-   CITY DECORATION
+   FLOATING HEART LIGHTS
 ========================================================= */
 
-const heartLights =
-  new THREE.Group();
+const hearts = [];
 
 
 for (
   let i = 0;
-  i < 14;
+  i < (low ? 25 : 45);
   i++
 ) {
 
-  const light =
+  const heart =
     sphere(
-      .12,
-      0xff76b8,
-      0xff287f,
-      4
+      0.12,
+      0xff7bb9,
+      0xff2e8b,
+      5
     );
 
+  heart.position.set(
 
-  const angle =
-    i / 14 *
-    Math.PI * 2;
-
-
-  light.position.set(
-
-    Math.cos(angle) *
-      13,
+    -65 +
+      Math.random() * 130,
 
     2 +
-      Math.sin(
-        i * 2
-      ) * .7,
+      Math.random() * 12,
 
-    Math.sin(angle) *
-      13
+    -35 +
+      Math.random() * 70
 
   );
 
+  heart.userData.phase =
+    Math.random() * 8;
 
-  heartLights.add(
-    light
+  city.add(
+    heart
+  );
+
+  hearts.push(
+    heart
   );
 
 }
 
 
-city.add(
-  heartLights
-);
-
-
 /* =========================================================
-   STATE
+   CAMERA TRAVEL
 ========================================================= */
 
 let state =
   "space";
 
-
-let travelling =
+let traveling =
   false;
 
 
-/* =========================================================
-   UI
-========================================================= */
-
-function setUI(
-  data
+function updateUI(
+  chapterText,
+  eyebrowText,
+  titleText,
+  descriptionText,
+  buttonText,
+  hintText
 ) {
 
   chapter.textContent =
-    data.chapter;
-
+    chapterText;
 
   eyebrow.textContent =
-    data.eyebrow;
-
+    eyebrowText;
 
   title.textContent =
-    data.title;
-
+    titleText;
 
   description.textContent =
-    data.description;
+    descriptionText;
 
+  action.textContent =
+    buttonText;
 
-  actionButton.textContent =
-    data.button;
-
-
-  interactionHint.textContent =
-    data.hint;
+  hint.textContent =
+    hintText;
 
 }
 
 
-/* =========================================================
-   CINEMATIC TRANSITION
-========================================================= */
-
-/*
-   Instead of:
-
-   camera A
-        ↓
-   camera B
-
-   we use:
-
-   A → HIGH ARC → B
-
-   This makes the journey feel like
-   actual travelling.
-*/
-
-function cinematicMove({
-
-  position,
-
+function travel(
+  endPosition,
   target,
+  duration = 1900,
+  finished
+) {
 
-  duration = 1800,
-
-  callback
-
-}) {
-
-  travelling =
-    true;
-
+  traveling = true;
 
   controls.enabled =
     false;
 
 
-  const start =
+  const startPosition =
     camera.position.clone();
-
 
   const startTarget =
     controls.target.clone();
 
 
-  const end =
-    position.clone();
-
-
-  const endTarget =
-    target.clone();
-
-
-  const mid =
-    start.clone()
+  const middle =
+    startPosition.clone()
       .lerp(
-        end,
-        .5
+        endPosition,
+        0.5
       );
 
 
-  mid.y +=
-    10;
+  middle.y += 10;
 
-
-  mid.z +=
-    5;
+  middle.z += 7;
 
 
   const startTime =
     performance.now();
 
 
-  function frame(
-    now
-  ) {
+  function move(now) {
 
-    let p =
-      (now - startTime) /
-      duration;
-
-
-    p =
+    let progress =
       Math.min(
-        p,
-        1
+        1,
+        (now - startTime) /
+          duration
       );
 
 
-    /* smootherstep */
-
-    const eased =
-      p * p * p *
+    const smooth =
+      progress *
+      progress *
+      progress *
       (
-        p *
-          (p * 6 - 15)
+        progress *
+        (progress * 6 - 15)
         + 10
       );
 
 
-    /*
-      Quadratic curve:
-      start → mid → end
-    */
-
-    const a =
-      new THREE.Vector3();
-
-
-    const b =
-      new THREE.Vector3();
+    const first =
+      new THREE.Vector3()
+        .lerpVectors(
+          startPosition,
+          middle,
+          smooth
+        );
 
 
-    a.lerpVectors(
-      start,
-      mid,
-      eased
-    );
-
-
-    b.lerpVectors(
-      mid,
-      end,
-      eased
-    );
+    const second =
+      new THREE.Vector3()
+        .lerpVectors(
+          middle,
+          endPosition,
+          smooth
+        );
 
 
     camera.position.lerpVectors(
-      a,
-      b,
-      eased
+      first,
+      second,
+      smooth
     );
 
 
     controls.target.lerpVectors(
-
       startTarget,
-
-      endTarget,
-
-      eased
-
+      target,
+      smooth
     );
 
 
@@ -2437,30 +3569,23 @@ function cinematicMove({
 
 
     if (
-      p < 1
+      progress < 1
     ) {
 
       requestAnimationFrame(
-        frame
+        move
       );
 
     } else {
 
-      travelling =
+      traveling =
         false;
-
 
       controls.enabled =
         true;
 
-
-      if (
-        callback
-      ) {
-
-        callback();
-
-      }
+      if (finished)
+        finished();
 
     }
 
@@ -2468,7 +3593,7 @@ function cinematicMove({
 
 
   requestAnimationFrame(
-    frame
+    move
   );
 
 }
@@ -2480,85 +3605,60 @@ function cinematicMove({
 
 function goToIndia() {
 
-  travelling =
-    true;
+  if (traveling)
+    return;
 
 
-  setUI({
-
-    chapter:
-      "01 → 02",
-
-    eyebrow:
-      "FOLLOW THE LIGHT",
-
-    title:
-      "Closer…",
-
-    description:
-      "Let's find her."
-
-    ,
-
-    button:
-      "Travelling…",
-
-    hint:
-      "✦"
-
-  });
-
-
-  actionButton.disabled =
-    true;
+  updateUI(
+    "01 → 02",
+    "FOLLOW THE LIGHT",
+    "Closer…",
+    "The camera leaves the planets and dives toward home.",
+    "Travelling…",
+    "✦"
+  );
 
 
   const her =
     planets.find(
-      p =>
-        p.userData.her
+      planet =>
+        planet.userData.her
     );
 
 
-  const destination =
-    her.position
-      .clone()
+  const position =
+    her.position.clone()
       .add(
         new THREE.Vector3(
           0,
-          3,
-          7
+          4,
+          8
         )
       );
 
 
-  cinematicMove({
+  travel(
+    position,
+    her.position,
+    low ? 1600 : 2200,
 
-    position:
-      destination,
+    () => {
 
-    target:
-      her.position,
-
-    duration:
-      lowPower ? 1700 : 2200,
-
-    callback() {
-
-      space.visible =
+      groups.universe.visible =
         false;
 
-
-      india.visible =
+      groups.india.visible =
         true;
+
+      state =
+        "india";
 
 
       camera.position.set(
         0,
         13,
-        32
+        31
       );
-
 
       controls.target.set(
         0,
@@ -2567,42 +3667,21 @@ function goToIndia() {
       );
 
 
-      state =
-        "india";
+      updateUI(
+        "02 · INDIA",
+        "HER WORLD",
+        "There she is.",
+        "One little glowing point on the map. Let's get closer.",
+        "Find Patna →",
+        "Tap the glowing PATNA"
+      );
 
 
-      actionButton.disabled =
-        false;
-
-
-      setUI({
-
-        chapter:
-          "02 · INDIA",
-
-        eyebrow:
-          "HER WORLD",
-
-        title:
-          "There she is.",
-
-        description:
-          "From all those stars, we finally found the right place.",
-
-        button:
-          "Find Patna →",
-
-        hint:
-          "Tap the glowing PATNA"
-
-      });
-
-      backButton.style.display =
+      back.style.display =
         "block";
 
     }
-
-  });
+  );
 
 }
 
@@ -2613,109 +3692,69 @@ function goToIndia() {
 
 function goToPatna() {
 
-  actionButton.disabled =
-    true;
+  if (traveling)
+    return;
 
 
-  setUI({
-
-    chapter:
-      "02 → 03",
-
-    eyebrow:
-      "COMING CLOSER",
-
-    title:
-      "India…",
-
-    description:
-      "Now let's find the city.",
-
-    button:
-      "Travelling…",
-
-    hint:
-      "✦"
-
-  });
+  updateUI(
+    "02 → 03",
+    "COMING CLOSER",
+    "India becomes a city.",
+    "Down through the lights…",
+    "Travelling…",
+    "✦"
+  );
 
 
-  cinematicMove({
+  travel(
 
-    position:
-      new THREE.Vector3(
-        0,
-        5,
-        17
-      ),
+    new THREE.Vector3(
+      0,
+      8,
+      24
+    ),
 
-    target:
-      new THREE.Vector3(
-        .7,
-        0,
-        1.4
-      ),
+    patna.position,
 
-    duration:
-      lowPower ? 1600 : 2100,
+    low ? 1600 : 2100,
 
-    callback() {
+    () => {
 
-      india.visible =
+      groups.india.visible =
         false;
 
-
-      city.visible =
+      groups.city.visible =
         true;
+
+      state =
+        "city";
 
 
       camera.position.set(
         0,
-        20,
-        42
+        30,
+        52
       );
-
 
       controls.target.set(
         0,
-        0,
+        2,
         0
       );
 
 
-      state =
-        "patna";
-
-
-      actionButton.disabled =
-        false;
-
-
-      setUI({
-
-        chapter:
-          "03 · PATNA",
-
-        eyebrow:
-          "THE CITY",
-
-        title:
-          "Welcome to Patna.",
-
-        description:
-          "A little city. A lot of memories waiting to be made.",
-
-        button:
-          "Explore the city →",
-
-        hint:
-          "Drag · pinch · explore"
-
-      });
+      updateUI(
+        "03 · PATNA",
+        "A LIVING CITY",
+        "Welcome to Patna.",
+        "Not a dot on a map — a whole city of lights, roads, river, people and places.",
+        "Explore Patna →",
+        "Tap landmarks · drag · explore"
+      );
 
     }
 
-  });
+  );
 
 }
 
@@ -2726,176 +3765,129 @@ function goToPatna() {
 
 function goToGolghar() {
 
-  actionButton.disabled =
-    true;
+  if (traveling)
+    return;
 
 
-  setUI({
-
-    chapter:
-      "03 → 04",
-
-    eyebrow:
-      "ONE LAST STOP",
-
-    title:
-      "Almost there…",
-
-    description:
-      "Follow the lights.",
-
-    button:
-      "Travelling…",
-
-    hint:
-      "❤️"
-
-  });
+  updateUI(
+    "03 → 04",
+    "ONE LAST STOP",
+    "Follow the pink lights.",
+    "Something special is waiting near the heart of the city.",
+    "Travelling…",
+    "❤️"
+  );
 
 
-  cinematicMove({
+  travel(
 
-    position:
-      new THREE.Vector3(
-        10,
-        7,
-        13
+    new THREE.Vector3(
+      -10,
+      8,
+      10
+    ),
+
+    golghar.position.clone()
+      .add(
+        new THREE.Vector3(
+          0,
+          3,
+          0
+        )
       ),
 
-    target:
-      golghar.position
-        .clone()
-        .add(
-          new THREE.Vector3(
-            0,
-            2,
-            0
-          )
-        ),
+    low ? 1500 : 1900,
 
-    duration:
-      lowPower ? 1700 : 2200,
-
-    callback() {
+    () => {
 
       state =
         "golghar";
 
 
-      actionButton.disabled =
-        false;
+      controls.target.set(
+        golghar.position.x,
+        2,
+        golghar.position.z
+      );
 
 
-      setUI({
-
-        chapter:
-          "04 · GOLGHAR",
-
-        eyebrow:
-          "WE FOUND IT",
-
-        title:
-          "Happy 20th ❤️",
-
-        description:
-          "This is only the beginning of your little birthday journey.",
-
-        button:
-          "Continue ✦",
-
-        hint:
-          "Explore · look around · smile"
-
-      });
+      updateUI(
+        "04 · GOLGHAR",
+        "WE FOUND IT",
+        "Happy 20th ❤️",
+        "A whole city just to deliver one tiny birthday wish.",
+        "Continue ✦",
+        "Tap the city · look around"
+      );
 
     }
 
-  });
+  );
 
 }
 
 
 /* =========================================================
-   NEXT
+   FINAL MESSAGE
 ========================================================= */
 
-function continueJourney() {
+function finish() {
 
-  title.textContent =
-    "For the girl I found among the stars.";
-
-
-  description.textContent =
-    "The next chapter is made of memories, places, photographs and all the little things that make you… you. ❤️";
-
-
-  actionButton.textContent =
-    "Next chapter →";
+  updateUI(
+    "05 · FOR HER",
+    "THE REAL DESTINATION",
+    "Distance is only a number.",
+    "No matter how many kilometres are between us, I would still choose you in every universe.",
+    "❤️",
+    "The next chapter is yours"
+  );
 
 
-  interactionHint.textContent =
-    "More is coming…";
-
-
-  actionButton.disabled =
+  action.disabled =
     true;
 
-}
 
+  for (
+    let i = 0;
+    i < 35;
+    i++
+  ) {
 
-/* =========================================================
-   BUTTON
-========================================================= */
+    const heart =
+      sphere(
+        0.06,
+        0xff8cc5,
+        0xff3c99,
+        4
+      );
 
-actionButton.addEventListener(
-  "click",
-  () => {
+    heart.position.set(
 
-    if (
-      travelling
-    ) {
-      return;
-    }
+      golghar.position.x +
+        (Math.random() - 0.5) *
+        18,
 
+      2 +
+        Math.random() *
+        15,
 
-    if (
-      state ===
-      "space"
-    ) {
+      golghar.position.z +
+        (Math.random() - 0.5) *
+        18
 
-      goToIndia();
+    );
 
-    }
+    city.add(
+      heart
+    );
 
-    else if (
-      state ===
-      "india"
-    ) {
-
-      goToPatna();
-
-    }
-
-    else if (
-      state ===
-      "patna"
-    ) {
-
-      goToGolghar();
-
-    }
-
-    else if (
-      state ===
-      "golghar"
-    ) {
-
-      continueJourney();
-
-    }
+    hearts.push(
+      heart
+    );
 
   }
-);
+
+}
 
 
 /* =========================================================
@@ -2905,7 +3897,6 @@ actionButton.addEventListener(
 const raycaster =
   new THREE.Raycaster();
 
-
 const pointer =
   new THREE.Vector2();
 
@@ -2914,36 +3905,30 @@ renderer.domElement.addEventListener(
   "pointerup",
   event => {
 
-    if (
-      travelling
-    ) {
+    if (traveling)
       return;
-    }
 
 
     const rect =
-      renderer.domElement
-        .getBoundingClientRect();
+      renderer.domElement.getBoundingClientRect();
 
 
     pointer.x =
       (
-        event.clientX -
-        rect.left
-      ) /
-      rect.width *
-      2 - 1;
+        (event.clientX - rect.left) /
+        rect.width
+      ) *
+      2 -
+      1;
 
 
     pointer.y =
       -(
-        (
-          event.clientY -
-          rect.top
-        ) /
+        (event.clientY - rect.top) /
         rect.height
       ) *
-      2 + 1;
+      2 +
+      1;
 
 
     raycaster.setFromCamera(
@@ -2952,80 +3937,115 @@ renderer.domElement.addEventListener(
     );
 
 
-    /* HER */
+    /* =========================
+       SPACE
+    ========================= */
 
     if (
-      state ===
-      "space"
+      state === "space"
     ) {
 
       const hits =
         raycaster.intersectObjects(
-          planets,
+          [
+            ...planets,
+            ...astronauts
+          ],
           true
         );
 
 
-      const herHit =
-        hits.some(
-          hit => {
-
-            let object =
-              hit.object;
+      if (!hits.length)
+        return;
 
 
-            while (
-              object
-            ) {
-
-              if (
-                object.userData?.her
-              ) {
-
-                return true;
-
-              }
-
-
-              object =
-                object.parent;
-
-            }
-
-
-            return false;
-
-          }
-        );
-
-
-      if (
-        herHit
+      for (
+        const hit
+        of hits
       ) {
 
-        goToIndia();
+        let object =
+          hit.object;
+
+
+        while (object) {
+
+          if (
+            object.userData?.her
+          ) {
+
+            goToIndia();
+
+            return;
+
+          }
+
+
+          object =
+            object.parent;
+
+        }
+
+      }
+
+
+      for (
+        const astronaut
+        of astronauts
+      ) {
+
+        const astronautHit =
+          hits.some(
+            hit =>
+              hit.object ===
+                astronaut ||
+
+              astronaut.children
+                .includes(
+                  hit.object
+                )
+          );
+
+
+        if (
+          astronautHit
+        ) {
+
+          astronaut.userData.emote =
+            "wave";
+
+          showEmote(
+            "👋"
+          );
+
+          say(
+            "Astronaut says hi!"
+          );
+
+          return;
+
+        }
 
       }
 
     }
 
 
-    /* PATNA */
+    /* =========================
+       INDIA
+    ========================= */
 
-    else if (
-      state ===
-      "india"
+    if (
+      state === "india"
     ) {
 
-      const hits =
-        raycaster.intersectObject(
-          patna,
-          true
-        );
-
-
       if (
-        hits.length
+        raycaster
+          .intersectObject(
+            patna,
+            true
+          )
+          .length
       ) {
 
         goToPatna();
@@ -3035,27 +4055,87 @@ renderer.domElement.addEventListener(
     }
 
 
-    /* GOLGHAR */
+    /* =========================
+       CITY
+    ========================= */
 
-    else if (
-      state ===
-      "patna"
+    if (
+      state === "city"
     ) {
 
+      const landmarks = [
+        golghar,
+        maidan,
+        secretariat,
+        museum,
+        station,
+        ghat,
+        setu,
+        dwar
+      ];
+
+
       const hits =
-        raycaster.intersectObject(
-          golghar,
-          true
-        );
+        raycaster
+          .intersectObjects(
+            landmarks,
+            true
+          );
 
 
-      if (
-        hits.length
-      ) {
+      if (!hits.length)
+        return;
 
-        goToGolghar();
+
+      let object =
+        hits[0].object;
+
+
+      while (object) {
+
+        if (
+          object.userData?.landmark ===
+          "Golghar"
+        ) {
+
+          goToGolghar();
+
+          return;
+
+        }
+
+        object =
+          object.parent;
 
       }
+
+
+      showEmote(
+        "✨"
+      );
+
+      say(
+        "Explore more of Patna — the city is alive."
+      );
+
+    }
+
+
+    /* =========================
+       GOLGHAR
+    ========================= */
+
+    if (
+      state === "golghar"
+    ) {
+
+      showEmote(
+        "❤️"
+      );
+
+      say(
+        "Happy birthday, birthday girl!"
+      );
 
     }
 
@@ -3064,39 +4144,83 @@ renderer.domElement.addEventListener(
 
 
 /* =========================================================
-   BACK
+   MAIN BUTTON
 ========================================================= */
 
-backButton.addEventListener(
+action.addEventListener(
   "click",
   () => {
 
-    travelling =
-      false;
+    if (traveling)
+      return;
 
+
+    if (
+      state === "space"
+    ) {
+
+      goToIndia();
+
+    }
+
+    else if (
+      state === "india"
+    ) {
+
+      goToPatna();
+
+    }
+
+    else if (
+      state === "city"
+    ) {
+
+      goToGolghar();
+
+    }
+
+    else if (
+      state === "golghar"
+    ) {
+
+      finish();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+back.addEventListener(
+  "click",
+  () => {
+
+    traveling =
+      false;
 
     state =
       "space";
 
 
-    space.visible =
+    groups.universe.visible =
       true;
 
-
-    india.visible =
+    groups.india.visible =
       false;
 
-
-    city.visible =
+    groups.city.visible =
       false;
 
 
     camera.position.set(
       0,
-      14,
-      48
+      13,
+      52
     );
-
 
     controls.target.set(
       0,
@@ -3105,67 +4229,21 @@ backButton.addEventListener(
     );
 
 
-    actionButton.disabled =
+    action.disabled =
       false;
 
 
-    setUI({
-
-      chapter:
-        "01 · THE UNIVERSE",
-
-      eyebrow:
-        "A LITTLE UNIVERSE",
-
-      title:
-        "Made for her.",
-
-      description:
-        "Somewhere between billions of stars, I found my favourite person.",
-
-      button:
-        "Find HER ✦",
-
-      hint:
-        "Drag · pinch · tap HER"
-
-    });
-
-
-    backButton.style.display =
+    back.style.display =
       "none";
 
-  }
-);
 
-
-/* =========================================================
-   RESIZE
-========================================================= */
-
-window.addEventListener(
-  "resize",
-  () => {
-
-    camera.aspect =
-      innerWidth /
-      innerHeight;
-
-
-    camera.updateProjectionMatrix();
-
-
-    renderer.setSize(
-      innerWidth,
-      innerHeight
-    );
-
-
-    renderer.setPixelRatio(
-      Math.min(
-        devicePixelRatio,
-        DPR
-      )
+    updateUI(
+      "01 · THE UNIVERSE",
+      "A LITTLE UNIVERSE",
+      "Find HER.",
+      "A brighter little universe made for the girl who turns distance into something beautiful.",
+      "Begin the journey ✦",
+      "Drag · pinch · tap objects"
     );
 
   }
@@ -3179,16 +4257,8 @@ window.addEventListener(
 const clock =
   new THREE.Clock();
 
-
 let lastFrame =
   0;
-
-
-const frameInterval =
-  lowPower
-    ? 1000 / 55
-    : 1000 / 60;
-
 
 let visible =
   true;
@@ -3215,19 +4285,19 @@ function animate(
   );
 
 
-  if (
-    !visible
-  ) {
+  if (!visible)
     return;
-  }
 
 
   if (
-    now -
-    lastFrame <
-    frameInterval
+    now - lastFrame <
+    (low
+      ? 1000 / 50
+      : 1000 / 60)
   ) {
+
     return;
+
   }
 
 
@@ -3239,139 +4309,124 @@ function animate(
     clock.getElapsedTime();
 
 
-  /* =====================================================
-     SPACE ANIMATION
-  ===================================================== */
+  /* =========================
+     SPACE
+  ========================= */
 
   if (
-    state ===
-    "space"
+    state === "space"
   ) {
 
-    solarSystem.rotation.y =
-      time * .011;
+    groups.universe.rotation.y =
+      time * 0.008;
 
 
     planets.forEach(
       planet => {
 
+        const angle =
+          time *
+          planet.userData.speed +
+          planet.userData.angle;
+
+
         const radius =
           planet.userData.distance;
 
 
-        const speed =
-          planet.userData.speed;
+        planet.position.set(
 
+          Math.cos(angle) *
+            radius,
 
-        const angle =
-          planet.userData.angle;
-
-
-        planet.position.x =
-          Math.cos(
-            time * speed +
-            angle
-          ) *
-          radius;
-
-
-        planet.position.z =
           Math.sin(
-            time * speed +
-            angle
-          ) *
-          radius;
+            time * 0.25 +
+            planet.userData.angle
+          ) * 0.35,
 
+          Math.sin(angle) *
+            radius
 
-        planet.rotation.y +=
-          .002;
-
-      }
-    );
-
-
-    /* ME around HER */
-
-    const her =
-      planets.find(
-        p =>
-          p.userData.her
-      );
-
-
-    if (
-      her
-    ) {
-
-      const me =
-        her.children.find(
-          c =>
-            c.userData?.me
         );
 
 
-      if (
-        me
-      ) {
-
-        const angle =
-          time * .9;
+        planet.rotation.y +=
+          0.002;
 
 
-        const radius =
-          2.3;
-
-
-        me.position.x =
-          Math.cos(angle) *
-          radius;
-
-
-        me.position.z =
-          Math.sin(angle) *
-          radius;
-
-      }
-
-    }
-
-
-    /* astronauts */
-
-    astronauts.forEach(
-      (astronaut, i) => {
-
-        astronaut.position.y +=
-          Math.sin(
-            time * .7 +
-            astronaut.userData.phase
-          ) *
-          .003;
-
-
-        astronaut.rotation.y +=
-          .0015;
-
-      }
-    );
-
-
-    /* shooting stars */
-
-    shootingStars.forEach(
-      star => {
-
-        star.position.x +=
-          star.userData.speed;
-
+        /* HER + ME */
 
         if (
-          star.position.x >
-          50
+          planet.userData.her
         ) {
 
-          star.position.x =
-            -50;
+          const me =
+            planet.children.find(
+              child =>
+                child.userData?.me
+            );
+
+
+          if (me) {
+
+            const meAngle =
+              time * 0.9;
+
+            const meRadius =
+              2.25;
+
+
+            me.position.set(
+
+              Math.cos(
+                meAngle
+              ) * meRadius,
+
+              Math.sin(
+                time * 0.7
+              ) * 0.15,
+
+              Math.sin(
+                meAngle
+              ) * meRadius
+
+            );
+
+          }
+
+
+          const heartParticles =
+            planet.children.filter(
+              child =>
+                child.userData?.h !==
+                undefined
+            );
+
+
+          heartParticles.forEach(
+            (heart, index) => {
+
+              const angle =
+                time * 0.55 +
+                index * 0.7;
+
+
+              heart.position.set(
+
+                Math.cos(angle) *
+                  2.8,
+
+                0.3 +
+                  Math.sin(angle) *
+                  0.4,
+
+                Math.sin(angle) *
+                  2.8
+
+              );
+
+            }
+          );
 
         }
 
@@ -3379,50 +4434,170 @@ function animate(
     );
 
 
-    stars.rotation.y =
-      time * .00035;
+    /* Astronauts */
+
+    astronauts.forEach(
+      astronaut => {
+
+        const waving =
+          astronaut.userData.emote ===
+          "wave";
+
+
+        astronaut.position.y =
+          astronaut.userData.baseY +
+          Math.sin(
+            time * 0.7 +
+            astronaut.userData.phase
+          ) *
+          0.8;
+
+
+        astronaut.rotation.z =
+          Math.sin(
+            time * 0.45 +
+            astronaut.userData.phase
+          ) *
+          0.08;
+
+
+        if (waving) {
+
+          const arm =
+            astronaut.children.find(
+              child =>
+                child.userData?.arm ===
+                1
+            );
+
+
+          if (arm) {
+
+            arm.rotation.z =
+              0.9 +
+              Math.sin(
+                time * 8
+              ) *
+              0.5;
+
+          }
+
+
+          if (
+            Math.sin(
+              time * 5
+            ) < -0.8
+          ) {
+
+            astronaut.userData.emote =
+              "idle";
+
+          }
+
+        }
+
+      }
+    );
+
+
+    /* Stars */
+
+    twinkles.forEach(
+      (star, index) => {
+
+        star.scale.setScalar(
+
+          1 +
+          Math.sin(
+            time * 2 +
+            index
+          ) *
+          0.25
+
+        );
+
+      }
+    );
 
   }
 
 
-  /* =====================================================
+  /* =========================
      CITY
-  ===================================================== */
+  ========================= */
 
   if (
-    state ===
-    "patna" ||
-    state ===
-    "golghar"
+    state === "city" ||
+    state === "golghar"
   ) {
 
-    golghar.rotation.y =
-      Math.sin(
-        time * .25
-      ) *
-      .025;
+    /* Boats */
+
+    boats.forEach(
+      boat => {
+
+        boat.position.x +=
+          boat.userData.speed;
 
 
-    heartLights.children
-      .forEach(
-        (light, i) => {
+        if (
+          boat.position.x >
+          85
+        ) {
 
-          light.material.emissiveIntensity =
-            2.5 +
-            Math.sin(
-              time * 2 +
-              i
-            ) *
-            1.2;
+          boat.position.x =
+            -85;
 
         }
-      );
+
+      }
+    );
+
+
+    /* Hearts */
+
+    hearts.forEach(
+      (heart, index) => {
+
+        heart.position.y +=
+          Math.sin(
+            time * 1.4 +
+            index
+          ) *
+          0.003;
+
+      }
+    );
+
+
+    /* City lighting */
+
+    cityLight.intensity =
+      26 +
+      Math.sin(
+        time * 1.2
+      ) *
+      6;
+
+
+    /* Golghar subtle movement */
+
+    if (
+      state === "golghar"
+    ) {
+
+      golghar.rotation.y =
+        Math.sin(
+          time * 0.25
+        ) *
+        0.025;
+
+    }
 
   }
 
 
   controls.update();
-
 
   renderer.render(
     scene,
@@ -3434,4 +4609,57 @@ function animate(
 
 requestAnimationFrame(
   animate
+);
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    camera.aspect =
+      innerWidth /
+      innerHeight;
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+      innerWidth,
+      innerHeight
+    );
+
+
+    renderer.setPixelRatio(
+      Math.min(
+        devicePixelRatio,
+        DPR
+      )
+    );
+
+  }
+);
+
+
+/* =========================================================
+   INITIAL UI
+========================================================= */
+
+updateUI(
+
+  "01 · THE UNIVERSE",
+
+  "A LITTLE UNIVERSE",
+
+  "Find HER.",
+
+  "A brighter little universe made for the girl who turns distance into something beautiful.",
+
+  "Begin the journey ✦",
+
+  "Drag · pinch · tap objects"
+
 );
