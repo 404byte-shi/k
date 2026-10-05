@@ -2,15 +2,11 @@
   --bg: #02030b;
   --white: #ffffff;
   --muted: #aaa7b8;
-  --pink: #ff79b5;
-  --pink-light: #ffb6d7;
-  --border: rgba(255, 255, 255, 0.14);
+  --pink: #ff75b6;
+  --pink-light: #ffb8d8;
+  --border: rgba(255,255,255,.14);
 }
 
-
-/* =========================================
-   RESET
-========================================= */
 
 * {
   box-sizing: border-box;
@@ -28,7 +24,7 @@ body {
 
   background: var(--bg);
 
-  color: var(--white);
+  color: white;
 
   font-family:
     Inter,
@@ -47,10 +43,6 @@ body {
 }
 
 
-/* =========================================
-   THREE.JS CONTAINER
-========================================= */
-
 #app {
   position: fixed;
 
@@ -58,8 +50,6 @@ body {
 
   width: 100%;
   height: 100%;
-
-  overflow: hidden;
 }
 
 
@@ -68,13 +58,11 @@ canvas {
 
   width: 100%;
   height: 100%;
-
-  touch-action: none;
 }
 
 
 /* =========================================
-   UI LAYER
+   UI
 ========================================= */
 
 .interface {
@@ -89,59 +77,59 @@ canvas {
 
 
 /* =========================================
-   TOP BAR
+   TOP
 ========================================= */
 
 .top-bar {
   position: absolute;
 
   top: 22px;
+
   left: 24px;
   right: 24px;
 
   display: flex;
 
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 
 .brand {
-  color: #e4e0ec;
-
   font-size: 11px;
 
-  font-weight: 700;
+  font-weight: 800;
 
-  letter-spacing: 0.28em;
+  letter-spacing: .28em;
 
-  text-transform: uppercase;
+  color: #e8e4ef;
 }
 
 
 .chapter {
-  padding: 9px 13px;
-
-  border: 1px solid var(--border);
+  padding: 9px 14px;
 
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border);
 
-  color: #bbb7c9;
+  background:
+    rgba(255,255,255,.055);
+
+  color: #c2bfcc;
 
   font-size: 10px;
 
-  letter-spacing: 0.12em;
+  letter-spacing: .12em;
 
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
 
-  -webkit-backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 
 /* =========================================
-   BACK BUTTON
+   BACK
 ========================================= */
 
 .back-button {
@@ -154,11 +142,12 @@ canvas {
 
   padding: 10px 15px;
 
-  border: 1px solid var(--border);
-
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border);
+
+  background:
+    rgba(255,255,255,.08);
 
   color: white;
 
@@ -169,13 +158,11 @@ canvas {
   pointer-events: auto;
 
   backdrop-filter: blur(12px);
-
-  -webkit-backdrop-filter: blur(12px);
 }
 
 
 .back-button:active {
-  transform: scale(0.96);
+  transform: scale(.96);
 }
 
 
@@ -187,6 +174,7 @@ canvas {
   position: absolute;
 
   left: 50%;
+
   bottom: 7%;
 
   width: min(90%, 720px);
@@ -208,57 +196,51 @@ canvas {
 
   font-weight: 800;
 
-  letter-spacing: 0.32em;
+  letter-spacing: .32em;
 
   text-transform: uppercase;
 }
 
 
 .story h1 {
-  margin-bottom: 15px;
-
-  color: white;
+  margin-bottom: 14px;
 
   font-size:
-    clamp(38px, 7vw, 78px);
+    clamp(40px, 7vw, 78px);
 
-  line-height: 0.95;
+  line-height: .94;
 
-  letter-spacing: -0.055em;
+  letter-spacing: -.055em;
 
-  font-weight: 750;
+  font-weight: 800;
 }
 
 
 .story p {
-  max-width: 610px;
+  max-width: 600px;
 
-  margin: 0 auto;
+  margin: auto;
 
   color: var(--muted);
 
   font-size: 15px;
 
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
-
-/* =========================================
-   BUTTON
-========================================= */
 
 .action-button {
   margin-top: 20px;
 
-  padding: 13px 20px;
-
-  border: 1px solid
-    rgba(255, 255, 255, 0.2);
+  padding: 13px 21px;
 
   border-radius: 999px;
 
+  border: 1px solid
+    rgba(255,255,255,.2);
+
   background:
-    rgba(255, 255, 255, 0.08);
+    rgba(255,255,255,.09);
 
   color: white;
 
@@ -270,35 +252,26 @@ canvas {
 
   pointer-events: auto;
 
-  backdrop-filter: blur(12px);
-
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
 
   transition:
-    transform 0.2s ease,
-    background 0.2s ease;
+    transform .2s ease,
+    background .2s ease;
 }
 
 
 .action-button:hover {
   background:
-    rgba(255, 255, 255, 0.15);
+    rgba(255,255,255,.16);
 
-  transform: translateY(-2px);
+  transform:
+    translateY(-2px);
 }
 
 
 .action-button:active {
-  transform: scale(0.96);
-}
-
-
-.action-button:disabled {
-  opacity: 0.6;
-
-  cursor: default;
-
-  transform: none;
+  transform:
+    scale(.96);
 }
 
 
@@ -310,13 +283,12 @@ canvas {
   position: absolute;
 
   right: 22px;
+
   bottom: 18px;
 
-  color: #706d7c;
+  color: #777482;
 
   font-size: 10px;
-
-  letter-spacing: 0.04em;
 }
 
 
@@ -336,8 +308,6 @@ canvas {
 
   .brand {
     font-size: 8px;
-
-    letter-spacing: 0.2em;
   }
 
 
@@ -352,35 +322,29 @@ canvas {
     top: 58px;
 
     left: 15px;
-
-    padding: 8px 12px;
-
-    font-size: 12px;
   }
 
 
   .story {
-    bottom: 6%;
-
     width: 92%;
+
+    bottom: 6%;
   }
 
 
   .eyebrow {
-    font-size: 9px;
+    font-size: 8px;
   }
 
 
   .story h1 {
     font-size:
-      clamp(34px, 11vw, 58px);
+      clamp(35px, 11vw, 58px);
   }
 
 
   .story p {
     font-size: 13px;
-
-    line-height: 1.6;
   }
 
 
@@ -403,7 +367,7 @@ canvas {
 
 
 /* =========================================
-   SHORT PHONES
+   SHORT SCREEN
 ========================================= */
 
 @media (max-height: 650px) {
@@ -415,16 +379,6 @@ canvas {
 
   .story p {
     display: none;
-  }
-
-
-  .story h1 {
-    margin-bottom: 5px;
-  }
-
-
-  .action-button {
-    margin-top: 10px;
   }
 
 }
