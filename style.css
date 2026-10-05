@@ -1,12 +1,10 @@
 :root {
-  --bg: #02030b;
+  --pink: #ff78bb;
+  --pink-light: #ffb4da;
+  --blue: #86a7ff;
   --white: #ffffff;
-  --muted: #aaa7b8;
-  --pink: #ff75b6;
-  --pink-light: #ffb8d8;
-  --border: rgba(255,255,255,.14);
+  --muted: #c5bfd0;
 }
-
 
 * {
   box-sizing: border-box;
@@ -14,16 +12,16 @@
   padding: 0;
 }
 
-
 html,
-body {
+body,
+#app {
   width: 100%;
   height: 100%;
-
   overflow: hidden;
+}
 
-  background: var(--bg);
-
+body {
+  background: #05030d;
   color: white;
 
   font-family:
@@ -35,262 +33,259 @@ body {
     sans-serif;
 
   touch-action: none;
-}
 
-
-body {
   -webkit-tap-highlight-color: transparent;
 }
 
-
-#app {
-  position: fixed;
-
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-}
-
-
 canvas {
   display: block;
-
-  width: 100%;
-  height: 100%;
 }
-
 
 /* =========================================
    UI
 ========================================= */
 
-.interface {
+.hud {
   position: fixed;
-
   inset: 0;
 
-  z-index: 10;
+  z-index: 5;
 
   pointer-events: none;
 }
 
+/* HEADER */
 
-/* =========================================
-   TOP
-========================================= */
-
-.top-bar {
+header {
   position: absolute;
 
-  top: 22px;
-
-  left: 24px;
-  right: 24px;
+  top: 18px;
+  left: 20px;
+  right: 20px;
 
   display: flex;
-
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
 }
-
 
 .brand {
-  font-size: 11px;
-
-  font-weight: 800;
-
-  letter-spacing: .28em;
-
-  color: #e8e4ef;
-}
-
-
-.chapter {
-  padding: 9px 14px;
-
-  border-radius: 999px;
-
-  border: 1px solid var(--border);
-
-  background:
-    rgba(255,255,255,.055);
-
-  color: #c2bfcc;
-
   font-size: 10px;
 
-  letter-spacing: .12em;
+  font-weight: 900;
 
-  backdrop-filter: blur(14px);
-
-  -webkit-backdrop-filter: blur(14px);
+  letter-spacing: 0.3em;
 }
 
+#chapter {
+  font-size: 9px;
 
-/* =========================================
-   BACK
-========================================= */
+  letter-spacing: 0.13em;
 
-.back-button {
-  position: absolute;
+  color: #ded8e5;
 
-  top: 68px;
-  left: 24px;
+  padding: 9px 13px;
 
-  display: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
 
-  padding: 10px 15px;
+  background: rgba(10, 8, 20, 0.3);
 
   border-radius: 999px;
 
-  border: 1px solid var(--border);
-
-  background:
-    rgba(255,255,255,.08);
-
-  color: white;
-
-  font-size: 12px;
-
-  cursor: pointer;
-
-  pointer-events: auto;
-
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
 }
 
-
-.back-button:active {
-  transform: scale(.96);
-}
-
-
-/* =========================================
-   STORY
-========================================= */
+/* STORY */
 
 .story {
   position: absolute;
 
   left: 50%;
-
-  bottom: 7%;
-
-  width: min(90%, 720px);
+  bottom: 5.5%;
 
   transform: translateX(-50%);
 
+  width: min(900px, 92%);
+
   text-align: center;
 
-  pointer-events: none;
+  text-shadow:
+    0 3px 30px rgba(0, 0, 0, 0.65);
 }
 
+#eyebrow {
+  font-size: 10px;
 
-.eyebrow {
-  margin-bottom: 12px;
+  font-weight: 900;
+
+  letter-spacing: 0.3em;
 
   color: var(--pink);
 
-  font-size: 10px;
-
-  font-weight: 800;
-
-  letter-spacing: .32em;
-
-  text-transform: uppercase;
+  margin-bottom: 12px;
 }
 
+h1 {
+  font-size: clamp(42px, 7vw, 82px);
 
-.story h1 {
+  line-height: 0.92;
+
+  letter-spacing: -0.06em;
+
   margin-bottom: 14px;
-
-  font-size:
-    clamp(40px, 7vw, 78px);
-
-  line-height: .94;
-
-  letter-spacing: -.055em;
-
-  font-weight: 800;
 }
 
-
-.story p {
-  max-width: 600px;
+p {
+  max-width: 720px;
 
   margin: auto;
 
-  color: var(--muted);
+  color: #d0cad8;
 
-  font-size: 15px;
+  font-size: 14px;
 
   line-height: 1.65;
 }
 
+/* BUTTON */
 
-.action-button {
-  margin-top: 20px;
+.glass {
+  pointer-events: auto;
+
+  color: white;
+
+  cursor: pointer;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.2);
+
+  background:
+    rgba(255, 255, 255, 0.09);
+
+  backdrop-filter: blur(14px);
+}
+
+.primary {
+  margin-top: 18px;
 
   padding: 13px 21px;
 
   border-radius: 999px;
 
-  border: 1px solid
-    rgba(255,255,255,.2);
+  font-size: 13px;
+
+  font-weight: 800;
+
+  transition: 0.2s;
+}
+
+.primary:hover {
+  transform: translateY(-2px);
 
   background:
-    rgba(255,255,255,.09);
-
-  color: white;
-
-  font-size: 14px;
-
-  font-weight: 700;
-
-  cursor: pointer;
-
-  pointer-events: auto;
-
-  backdrop-filter: blur(14px);
-
-  transition:
-    transform .2s ease,
-    background .2s ease;
+    rgba(255, 255, 255, 0.16);
 }
 
-
-.action-button:hover {
-  background:
-    rgba(255,255,255,.16);
-
-  transform:
-    translateY(-2px);
+.primary:active {
+  transform: scale(0.96);
 }
 
+/* BACK */
 
-.action-button:active {
-  transform:
-    scale(.96);
-}
+.back {
+  display: none;
 
-
-/* =========================================
-   HINT
-========================================= */
-
-.interaction-hint {
   position: absolute;
 
-  right: 22px;
+  top: 61px;
+  left: 20px;
 
-  bottom: 18px;
+  border-radius: 999px;
 
-  color: #777482;
+  padding: 9px 13px;
 
-  font-size: 10px;
+  font-size: 11px;
 }
 
+/* HINT */
+
+.hint {
+  position: absolute;
+
+  right: 18px;
+  bottom: 16px;
+
+  color: #9c95a8;
+
+  font-size: 9px;
+
+  letter-spacing: 0.06em;
+}
+
+/* TOAST */
+
+.toast {
+  position: absolute;
+
+  left: 50%;
+  top: 15%;
+
+  transform: translateX(-50%);
+
+  opacity: 0;
+
+  transition: 0.35s;
+
+  pointer-events: none;
+
+  padding: 10px 16px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(20, 10, 25, 0.72);
+
+  border:
+    1px solid rgba(255, 160, 210, 0.3);
+
+  backdrop-filter: blur(12px);
+
+  font-size: 12px;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* EMOTE */
+
+.emote {
+  position: absolute;
+
+  left: 50%;
+  top: 25%;
+
+  transform:
+    translate(-50%, -50%);
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  font-size: 40px;
+
+  transition: 0.3s;
+
+  text-shadow:
+    0 0 30px rgba(255, 100, 190, 0.8);
+}
+
+.emote.show {
+  opacity: 1;
+
+  transform:
+    translate(-50%, -50%)
+    scale(1.15);
+}
 
 /* =========================================
    MOBILE
@@ -298,87 +293,50 @@ canvas {
 
 @media (max-width: 600px) {
 
-  .top-bar {
-    top: 15px;
+  header {
+    top: 12px;
 
-    left: 15px;
-    right: 15px;
+    left: 13px;
+    right: 13px;
   }
-
 
   .brand {
     font-size: 8px;
   }
 
-
-  .chapter {
-    padding: 7px 10px;
-
-    font-size: 8px;
-  }
-
-
-  .back-button {
-    top: 58px;
-
-    left: 15px;
-  }
-
-
   .story {
-    width: 92%;
-
-    bottom: 6%;
+    bottom: 4.5%;
   }
 
+  #chapter {
+    font-size: 7px;
 
-  .eyebrow {
+    padding: 7px 9px;
+  }
+
+  #eyebrow {
     font-size: 8px;
   }
 
-
-  .story h1 {
+  h1 {
     font-size:
-      clamp(35px, 11vw, 58px);
+      clamp(38px, 12vw, 62px);
   }
 
-
-  .story p {
-    font-size: 13px;
+  p {
+    font-size: 12px;
   }
 
+  .primary {
+    font-size: 12px;
 
-  .action-button {
-    padding: 12px 18px;
-
-    font-size: 13px;
+    padding: 11px 17px;
   }
 
-
-  .interaction-hint {
-    right: 15px;
-
-    bottom: 12px;
-
+  .hint {
     font-size: 8px;
+
+    right: 12px;
+    bottom: 10px;
   }
-
-}
-
-
-/* =========================================
-   SHORT SCREEN
-========================================= */
-
-@media (max-height: 650px) {
-
-  .story {
-    bottom: 4%;
-  }
-
-
-  .story p {
-    display: none;
-  }
-
 }
